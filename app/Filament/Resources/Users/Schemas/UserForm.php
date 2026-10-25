@@ -41,6 +41,7 @@ class UserForm
                     ->label('Rola w systemie')
                     ->options([
                         'admin' => 'Administrator',
+                        'manager' => 'Menadżer',
                         'worker' => 'Pracownik',
                     ])
                     ->required()

@@ -10,15 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('products', function (Blueprint $table) {
-        $table->id();
-        $table->string('nazwa');
-        $table->string('typ');
-        $table->foreignId('jednostka_id')->constrained('unit_of_measures')->onDelete('cascade');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('type');
+            $table->foreignId('unit_id')->constrained('unit_of_measures')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

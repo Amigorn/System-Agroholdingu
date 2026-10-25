@@ -16,14 +16,14 @@ class UnitOfMeasureFactory extends Factory
      * @return array<string, mixed>
      */
     public function definition(): array
-{
-    return [
-        'nazwa' => fake()->randomElement(['Kilogram', 'Litr', 'Tona']),
-        'skrot' => fn (array $attr) => match($attr['nazwa']) {
-            'Kilogram' => 'kg',
-            'Litr' => 'l',
-            'Tona' => 't',
-        },
-    ];
-}
+    {
+        return [
+            'name' => fake()->randomElement(['Kilogram', 'Litr', 'Tona']),
+            'symbol' => fn (array $attr) => match($attr['name']) {
+                'Kilogram' => 'kg',
+                'Litr' => 'l',
+                'Tona' => 't',
+            },
+        ];
+    }
 }

@@ -21,15 +21,18 @@ class UsersTable
             ->columns([
                 TextColumn::make('first_name')
                     ->label('Imię')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                     
                 TextColumn::make('last_name')
                     ->label('Nazwisko')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                     
                 TextColumn::make('email')
                     ->label('Adres email')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                     
                 TextColumn::make('email_verified_at')
                     ->label('Zweryfikowano')
@@ -42,11 +45,13 @@ class UsersTable
                     ->sortable()
                     ->color(fn (string $state): string => match ($state) {
                         'admin' => 'danger',   // Czerwony dla Admina
+                        'manager' => 'info',   // Niebieski dla Menadzera
                         'worker' => 'success', // Zielony dla Pracownika
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'admin' => 'Administrator',
+                        'manager' => 'Menadżer',
                         'worker' => 'Pracownik',
                         default => $state,
                     })

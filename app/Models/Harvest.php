@@ -11,10 +11,32 @@ class Harvest extends Model
     /** @use HasFactory<\Database\Factories\HarvestFactory> */
     use HasFactory;
 
-    protected $fillable = ['data_zbioru', 'ilosc', 'jednostka_id', 'uprawa_id', 'pole_id', 'produkt_id'];
+    protected $fillable = [
+        'date',
+        'quantity',
+        'unit_id',
+        'crop_id',
+        'field_id',
+        'product_id',
+    ];
 
-public function jednostka() { return $this->belongsTo(UnitOfMeasure::class, 'jednostka_id'); }
-public function uprawa() { return $this->belongsTo(Crop::class, 'uprawa_id'); }
-public function pole() { return $this->belongsTo(Field::class, 'pole_id'); }
-public function produkt() { return $this->belongsTo(Product::class, 'produkt_id'); }
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_id');
+    }
+
+    public function crop(): BelongsTo
+    {
+        return $this->belongsTo(Crop::class, 'crop_id');
+    }
+
+    public function field(): BelongsTo
+    {
+        return $this->belongsTo(Field::class, 'field_id');
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 }

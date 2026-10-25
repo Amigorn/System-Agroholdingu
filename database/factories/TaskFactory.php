@@ -18,7 +18,7 @@ class TaskFactory extends Factory
             : null;
 
         return [
-            'type' => fake()->randomElement(['Ploughing', 'Sowing', 'Spraying', 'Harvesting', 'Fertilizing']),
+            'type' => fake()->randomElement(['Orka', 'Siew', 'Oprysk', 'Omłot', 'Nawożenie']),
             'planned_at' => $plannedAt,
             'completed_at' => $completedAt,
             'status' => $status,

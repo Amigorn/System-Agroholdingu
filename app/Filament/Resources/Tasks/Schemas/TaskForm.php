@@ -28,6 +28,12 @@ class TaskForm
                 ->relationship('machine', 'name'),
             TextInput::make('type')
                 ->label('Rodzaj zabiegu')
+                ->datalist([
+                    'Nawożenie',
+                    'Oprysk',
+                    'Orka',
+                    'Siew',
+                ])
                 ->required(),
             Select::make('status')
                 ->label('Status')

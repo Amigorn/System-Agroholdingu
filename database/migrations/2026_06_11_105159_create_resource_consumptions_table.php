@@ -10,15 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('resource_consumptions', function (Blueprint $table) {
-        $table->id();
-        $table->decimal('ilosc', 10, 2);
-        $table->foreignId('zadanie_id')->constrained('tasks')->onDelete('cascade');
-        $table->foreignId('surowiec_id')->constrained('resources')->onDelete('cascade');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('resource_consumptions', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('quantity', 10, 2);
+            $table->foreignId('task_id')->constrained('tasks')->onDelete('cascade');
+            $table->foreignId('resource_id')->constrained('resources')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

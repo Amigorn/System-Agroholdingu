@@ -17,11 +17,11 @@ class ProductFactory extends Factory
      * @return array<string, mixed>
      */
     public function definition(): array
-{
-    return [
-        'nazwa' => fake()->randomElement(['Pszenica konsumpcyjna', 'Rzepak przemysłowy', 'Mleko surowe']),
-        'typ' => fake()->randomElement(['Zboża', 'Oleiste', 'Nabiał']),
-        'jednostka_id' => UnitOfMeasure::factory(),
-    ];
-}
+    {
+        return [
+            'name' => fake()->randomElement(['Pszenica konsumpcyjna', 'Rzepak przemysłowy', 'Mleko surowe']),
+            'type' => fake()->randomElement(['Zboża', 'Oleiste', 'Nabiał']),
+            'unit_id' => UnitOfMeasure::factory(),
+        ];
+    }
 }

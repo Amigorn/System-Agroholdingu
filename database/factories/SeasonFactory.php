@@ -17,8 +17,11 @@ class SeasonFactory extends Factory
      */
     public function definition(): array
     {
+        $year = fake()->year();
+
         return [
-            //
+            'year' => $year,
+            'name' => 'Sezon uprawowy' . $year,
         ];
     }
 }

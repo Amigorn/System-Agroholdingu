@@ -9,12 +9,12 @@ use App\Models\Season;
 class CropFactory extends Factory
 {
     public function definition(): array
-{
-    return [
-        'nazwa' => fake()->randomElement(['Pszenica Ozima', 'Rzepak Ozimy', 'Kukurydza na kiszonkę']),
-        'opis' => fake()->optional()->sentence(),
-        'pole_id' => Field::factory(),
-        'sezon_uprawowy_id' => Season::factory(),
-    ];
-}
+    {
+        return [
+            'name' => fake()->randomElement(['Pszenica Ozima', 'Rzepak Ozimy', 'Kukurydza na kiszonkę']),
+            'description' => fake()->optional()->sentence(),
+            'field_id' => Field::factory(),
+            'season_id' => Season::factory(),
+        ];
+    }
 }

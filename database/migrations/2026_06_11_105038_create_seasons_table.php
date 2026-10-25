@@ -13,8 +13,8 @@ return new class extends Migration
 {
     Schema::create('seasons', function (Blueprint $table) {
         $table->id();
-        $table->integer('rok');   // <-- Upewnij się, że ta kolumna tu jest!
-        $table->string('nazwa'); // <-- I ta również
+        $table->integer('year');   // <-- Upewnij się, że ta kolumna tu jest!
+        $table->string('name'); // <-- I ta również
         $table->timestamps();
     });
 }
