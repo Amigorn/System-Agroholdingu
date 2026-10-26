@@ -34,11 +34,6 @@ class UsersTable
                     ->searchable()
                     ->sortable(),
                     
-                TextColumn::make('email_verified_at')
-                    ->label('Zweryfikowano')
-                    ->dateTime('d.m.Y H:i')
-                    ->sortable(),
-                    
                 TextColumn::make('role')
                     ->label('Rola')
                     ->badge()
@@ -51,7 +46,7 @@ class UsersTable
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'admin' => 'Administrator',
-                        'manager' => 'Menadżer',
+                        'manager' => 'Magazynier',
                         'worker' => 'Pracownik',
                         default => $state,
                     })
