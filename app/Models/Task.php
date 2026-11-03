@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory; // <-- Sprawdź czy jest ten import
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
-    use HasFactory; // <-- Sprawdź czy to na pewno tu siedzi
+    use HasFactory;
 
     protected $fillable = [
         'type', 
@@ -18,6 +18,7 @@ class Task extends Model
         'description', 
         'user_id', 
         'machine_id', 
+        'tractor_id', // <-- Dopisane pole dla ciągnika
         'field_id'
     ];
 
@@ -28,7 +29,12 @@ class Task extends Model
 
     public function machine(): BelongsTo
     {
-        return $this->belongsTo(Machine::class);
+        return $this->belongsTo(Machine::class, 'machine_id');
+    }
+
+    public function tractor(): BelongsTo
+    {
+        return $this->belongsTo(Machine::class, 'tractor_id'); // <-- Dopisana relacja dla ciągnika
     }
 
     public function field(): BelongsTo

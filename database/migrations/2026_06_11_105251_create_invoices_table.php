@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
+            $table->string('numer');
+            $table->date('data_wystawienia');
+            $table->string('typ'); // 'zakup' lub 'sprzedaz'
+            $table->string('kontrahent');
+            $table->decimal('wartosc', 10, 2)->default(0);
+            $table->text('opis')->nullable();
             $table->timestamps();
         });
     }

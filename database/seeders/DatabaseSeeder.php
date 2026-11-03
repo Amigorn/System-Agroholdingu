@@ -13,6 +13,8 @@ use App\Models\Harvest;
 use App\Models\UnitOfMeasure;
 use App\Models\Product;
 use App\Models\Season;
+use App\Models\Invoice;       // <-- Import modelu faktury
+use App\Models\InvoiceItem; // <-- Import modelu pozycji faktury
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -29,9 +31,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 2. Units of Measure
-        $kg = UnitOfMeasure::factory()->create(['name' => 'Kilogram', 'symbol' => 'kg']);
-        $l = UnitOfMeasure::factory()->create(['name' => 'Liter', 'symbol' => 'l']);
-        $t = UnitOfMeasure::factory()->create(['name' => 'Tonne', 'symbol' => 't']);
+        $kg = UnitOfMeasure::factory()->create(['name' => 'Kilogramy', 'symbol' => 'kg']);
+        $l = UnitOfMeasure::factory()->create(['name' => 'Litery', 'symbol' => 'l']);
+        $t = UnitOfMeasure::factory()->create(['name' => 'Tony', 'symbol' => 't']);
 
         // 3. Seasons
         $season = Season::factory()->create(['year' => 2026, 'name' => 'Sezon uprawowy 2026']);
@@ -58,7 +60,6 @@ class DatabaseSeeder extends Seeder
         for ($i = 0; $i < 20; $i++) {
             $task = Task::factory()->create([
                 'user_id' => $workers->random()->id,
-                'machine_id' => fake()->boolean(80) ? $machines->random()->id : null,
                 'field_id' => $fields->random()->id,
             ]);
 
@@ -80,5 +81,17 @@ class DatabaseSeeder extends Seeder
                 'product_id' => $products->random()->id,
             ]);
         }
+
+        // 7. Invoices & Invoice Items (Faktury i ich pozycje)
+        Invoice::factory(15)
+            ->has(
+                InvoiceItem::factory()
+                    ->count(fake()->numberBetween(1, 5))
+                    ->state(fn () => [
+                        'produkt_id' => $products->random()->id,
+                    ]),
+                'items'
+            )
+            ->create();
     }
 }

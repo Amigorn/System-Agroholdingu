@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Harvests\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -13,23 +13,42 @@ class HarvestForm
     {
         return $schema
             ->components([
-                DateTimePicker::make('date')
+                DatePicker::make('date')
+                    ->label('Data zbioru')
                     ->required(),
+
                 TextInput::make('quantity')
+                    ->label('Ilość')
                     ->required()
                     ->numeric(),
+
                 Select::make('unit_id')
+                    ->label('Jednostka')
                     ->relationship('unit', 'name')
-                    ->required(),
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+
                 Select::make('crop_id')
+                    ->label('Uprawa')
                     ->relationship('crop', 'name')
-                    ->required(),
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+
                 Select::make('field_id')
+                    ->label('Pole uprawne')
                     ->relationship('field', 'name')
-                    ->required(),
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+
                 Select::make('product_id')
+                    ->label('Produkt')
                     ->relationship('product', 'name')
-                    ->required(),
+                    ->required()
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 }

@@ -19,13 +19,27 @@ class TaskForm
                 ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->first_name} {$record->last_name}")
                 ->required()
                 ->searchable(),
+
             Select::make('field_id')
                 ->label('Pole uprawne')
                 ->relationship('field', 'name')
-                ->required(),
+                ->required()
+                ->searchable()
+                ->preload(),
+
+            Select::make('tractor_id')
+                ->label('Ciągnik / Jednostka napędowa')
+                ->relationship('tractor', 'name', fn ($query) => $query->where('type', 'Ciągnik'))
+                ->required()
+                ->searchable()
+                ->preload(),
+
             Select::make('machine_id')
-                ->label('Przypisana maszyna')
-                ->relationship('machine', 'name'),
+                ->label('Maszyna / Narzędzie towarzyszące')
+                ->relationship('machine', 'name', fn ($query) => $query->where('type', '!=', 'Ciągnik'))
+                ->searchable()
+                ->preload(),
+
             TextInput::make('type')
                 ->label('Rodzaj zabiegu')
                 ->datalist([
@@ -35,6 +49,7 @@ class TaskForm
                     'Siew',
                 ])
                 ->required(),
+
             Select::make('status')
                 ->label('Status')
                 ->options([
@@ -43,11 +58,14 @@ class TaskForm
                     'completed' => 'Zakończone',
                 ])
                 ->required(),
+
             DateTimePicker::make('planned_at')
                 ->label('Data planowana')
                 ->required(),
+
             DateTimePicker::make('completed_at')
                 ->label('Data zakończenia'),
+
             Textarea::make('description')
                 ->label('Opis zadania')
                 ->columnSpanFull(),

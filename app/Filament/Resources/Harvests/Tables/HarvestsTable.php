@@ -15,7 +15,9 @@ class HarvestsTable
         return $table
             ->columns([
                 TextColumn::make('date')
+                    ->label('Data zbioru')
                     ->dateTime()
+                    ->date('d.m.Y')
                     ->sortable(),
                 TextColumn::make('quantity')
                     ->label('Ilość')

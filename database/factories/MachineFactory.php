@@ -10,7 +10,7 @@ class MachineFactory extends Factory
     {
         return [
             'name' => fake()->randomElement(['John Deere', 'New Holland', 'Case IH', 'Claars', 'Massey Ferguson']) . ' ' . fake()->numberBetween(100, 900),
-            'type' => fake()->randomElement(['Tractor', 'Combine Harvester', 'Plough', 'Seeder', 'Sprayer']),
+            'type' => fake()->randomElement(['Ciągnik', 'Kombajn', 'Pług', 'Siewnik', 'Opryskiwacz']),
             'status' => fake()->randomElement(['available', 'in_use', 'under_repair']),
             'description' => fake()->optional()->sentence(),
         ];

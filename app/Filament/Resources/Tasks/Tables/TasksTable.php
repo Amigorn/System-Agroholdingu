@@ -39,12 +39,24 @@ class TasksTable
                 ->label('Data zakończenia')
                 ->dateTime('Y-m-d H:i')
                 ->sortable(),
+            TextColumn::make('tractor.name')
+                ->label('Ciągnik')
+                ->sortable()
+                ->searchable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('machine.name')
+                ->label('Maszyna towarzysząca')
+                ->sortable()
+                ->searchable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('description')
+                ->label('Opis')
+                ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('created_at')
                 ->label('Utworzono')
                 ->dateTime('d.m.Y H:i')
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: true),
-                    
             TextColumn::make('updated_at')
                 ->label('Zaktualizowano')
                 ->dateTime('d.m.Y H:i')

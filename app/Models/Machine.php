@@ -16,4 +16,14 @@ class Machine extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function tractor()
+{
+    return $this->belongsTo(Machine::class, 'tractor_id');
+}
+
+public function machine()
+{
+    return $this->belongsTo(Machine::class, 'machine_id');
+}
 }
