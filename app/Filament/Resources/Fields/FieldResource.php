@@ -9,6 +9,7 @@ use App\Filament\Resources\Fields\Schemas\FieldForm;
 use App\Filament\Resources\Fields\Tables\FieldsTable;
 use App\Models\Field;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -19,6 +20,7 @@ class FieldResource extends Resource
     protected static ?string $navigationLabel = 'Pola Uprawne';
     protected static ?string $model = Field::class;
 
+    protected static string | UnitEnum | null $navigationGroup = 'Produkcja Rolna';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMap;
 
     public static function form(Schema $schema): Schema
@@ -32,11 +34,11 @@ class FieldResource extends Resource
     }
 
     public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
+{
+    return [
+        RelationManagers\CropsRelationManager::class,
+    ];
+}
 
     public static function getPages(): array
     {

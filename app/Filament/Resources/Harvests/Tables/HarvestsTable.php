@@ -28,12 +28,15 @@ class HarvestsTable
                     ->sortable(),
                 TextColumn::make('crop.name')
                     ->label('Uprawa')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('field.name')
                     ->label('Pole')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('product.name')
                     ->label('Produkt')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

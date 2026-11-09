@@ -11,6 +11,8 @@ use App\Models\UnitOfMeasure;
  */
 class ProductFactory extends Factory
 {
+    protected $model = Product::class;
+
     /**
      * Define the model's default state.
      *
@@ -19,9 +21,15 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->randomElement(['Pszenica konsumpcyjna', 'Rzepak przemysłowy', 'Mleko surowe']),
-            'type' => fake()->randomElement(['Zboża', 'Oleiste', 'Nabiał']),
-            'unit_id' => UnitOfMeasure::factory(),
+            'name' => fake()->randomElement([
+                'Pszenica ozima', 
+                'Jęczmień jary', 
+                'Rzepak ozimy', 
+                'Kukurydza ziarno', 
+                'Buraki cukrowe'
+            ]),
+            'type' => 'crop', // Zgodne z naszym systemem: plon / zbiór
+            'unit_id' => UnitOfMeasure::inRandomOrder()->first()?->id ?? UnitOfMeasure::factory(),
         ];
     }
 }

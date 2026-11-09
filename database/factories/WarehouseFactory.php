@@ -10,15 +10,13 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class WarehouseFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Warehouse::class;
+
     public function definition(): array
     {
         return [
-            //
+            'name' => 'Magazyn ' . fake()->unique()->randomElement(['Główny', 'Nawozów', 'Paliw', 'Nasion', 'Zbożowy', 'Maszynowy']),
+            'location' => 'Gospodarstwo - sektor ' . fake()->randomLetter(),
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Filament\Resources\Tasks\Schemas\TaskForm;
 use App\Filament\Resources\Tasks\Tables\TasksTable;
 use App\Models\Task;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,6 +21,7 @@ class TaskResource extends Resource
     protected static ?string $navigationLabel = 'Zadania';
     protected static ?string $model = Task::class;
 
+    protected static string | UnitEnum | null $navigationGroup = 'Zarządzanie Gospodarstwem';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
     public static function form(Schema $schema): Schema

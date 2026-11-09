@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Season;
 use App\Models\Invoice;       // <-- Import modelu faktury
 use App\Models\InvoiceItem; // <-- Import modelu pozycji faktury
+use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -32,15 +33,22 @@ class DatabaseSeeder extends Seeder
 
         // 2. Units of Measure
         $kg = UnitOfMeasure::factory()->create(['name' => 'Kilogramy', 'symbol' => 'kg']);
-        $l = UnitOfMeasure::factory()->create(['name' => 'Litery', 'symbol' => 'l']);
+        $l = UnitOfMeasure::factory()->create(['name' => 'Litry', 'symbol' => 'l']);
         $t = UnitOfMeasure::factory()->create(['name' => 'Tony', 'symbol' => 't']);
 
-        // 3. Seasons
-        $season = Season::factory()->create(['year' => 2026, 'name' => 'Sezon uprawowy 2026']);
+        // 2.5. Warehouses (Magazyny w gospodarstwie)
+        $warehouses = Warehouse::factory(5)->create();
+
+        // 3. Seasons (Wieloletnia historia dla płodozmianu)
+        $seasons = [
+            Season::factory()->create(['year' => 2024, 'name' => 'Sezon uprawowy 2024']),
+            Season::factory()->create(['year' => 2025, 'name' => 'Sezon uprawowy 2025']),
+            Season::factory()->create(['year' => 2026, 'name' => 'Sezon uprawowy 2026']),
+        ];
 
         // 4. Parent resources
         $workers = User::factory(10)->create(); 
-        $fields = Field::factory(10)->create(); 
+        $fields = Field::factory(10)->create(); // np. 5 pól, żeby łatwiej kontrolować widok
         $machines = Machine::factory(10)->create();
 
         $resources = Resource::factory(10)->create([
@@ -51,10 +59,17 @@ class DatabaseSeeder extends Seeder
             'unit_id' => $t->id
         ]);
 
-        $crops = Crop::factory(10)->create([
-            'field_id' => fn() => $fields->random()->id,
-            'season_id' => $season->id
-        ]);
+        // KLUCZOWA ZMIANA: Płodozmian – dla każdego pola tworzymy uprawę w każdym sezonie po kolei
+        $crops = collect();
+        foreach ($fields as $field) {
+            foreach ($seasons as $season) {
+                $crops->push(Crop::factory()->create([
+                    'field_id' => $field->id,
+                    'season_id' => $season->id,
+                    'name' => fake()->randomElement(['Pszenica Ozima', 'Rzepak Ozimy', 'Kukurydza na ziarno', 'Jęczmień jary'])
+                ]));
+            }
+        }
 
         // 5. Tasks and Resource Consumptions
         for ($i = 0; $i < 20; $i++) {
@@ -71,8 +86,8 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 6. Harvests
-        for ($i = 0; $i < 10; $i++) {
+        // 6. Harvests (Zbiory powiązane z uprawami i polami)
+        for ($i = 0; $i < 15; $i++) {
             $crop = $crops->random();
             Harvest::factory()->create([
                 'unit_id' => $t->id,

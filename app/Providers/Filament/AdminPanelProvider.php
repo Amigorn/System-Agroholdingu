@@ -30,17 +30,24 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brandName(new HtmlString('<span style="color: #61f725; font-weight: bold;">AgroTech Company</span>'))
             ->login()
+            ->sidebarCollapsibleOnDesktop()
             ->colors([
                 'primary' => '#166534',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->navigationGroups([
+            'Produkcja Rolna',
+            'Zarządzanie Gospodarstwem',
+            'Handel i Finanse',
+            'Magazyn i Zasoby',
+        ])
             ->pages([
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-               
+                
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -56,5 +63,6 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+            
     }
 }

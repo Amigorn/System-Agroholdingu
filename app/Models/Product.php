@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory;
 
-    protected $fillable = ['nazwa', 'typ', 'jednostka_id'];
+    protected $fillable = ['name', 'type', 'unit_id'];
 
-public function jednostka() { 
-    return $this->belongsTo(UnitOfMeasure::class, 'jednostka_id'); 
-}
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_id');
+    }
 }

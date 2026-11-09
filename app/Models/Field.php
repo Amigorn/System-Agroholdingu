@@ -16,4 +16,8 @@ class Field extends Model
     {
         return $this->hasMany(Task::class);
     }
+    public function crops(): HasMany
+    {
+        return $this->hasMany(Crop::class);
+    }
 }
