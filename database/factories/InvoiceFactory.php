@@ -15,12 +15,12 @@ class InvoiceFactory extends Factory
     public function definition(): array
     {
         return [
-            'numer' => 'FV/' . fake()->unique()->numerify('###/2026'),
-            'data_wystawienia' => fake()->dateTimeBetween('-3 months', 'now'),
-            'typ' => fake()->randomElement(['zakup', 'sprzedaz']),
-            'kontrahent' => fake()->company(),
-            'wartosc' => fake()->randomFloat(2, 1000, 50000), // Całkowita wartość faktury
-            'opis' => fake()->optional()->sentence(),
+            'number' => 'FV/' . fake()->unique()->numerify('###/2026'),
+            'issue_date' => fake()->dateTimeBetween('-3 months', 'now'),
+            'type' => fake()->randomElement(['purchase', 'sale']),
+            'contractor' => fake()->company(),
+            'total' => fake()->randomFloat(2, 1000, 50000), // Całkowita wartość faktury
+            'description' => fake()->optional()->sentence(),
         ];
     }
 }

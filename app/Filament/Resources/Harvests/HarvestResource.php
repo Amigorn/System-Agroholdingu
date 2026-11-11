@@ -22,6 +22,8 @@ class HarvestResource extends Resource
     protected static string | UnitEnum | null $navigationGroup = 'Produkcja Rolna';
 
     protected static ?string $navigationLabel = 'Zbiory';
+    protected static ?string $pluralModelLabel = 'Zbiory';
+    protected static ?string $modelLabel = 'Zbiór';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';
 

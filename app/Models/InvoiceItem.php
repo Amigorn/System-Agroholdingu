@@ -12,21 +12,26 @@ class InvoiceItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'faktura_id',
-        'produkt_id',
-        'ilosc',
-        'cena_jednostkowa',
-        'wartosc',
-        'uwagi',
+        'invoice_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+        'total',
+        'notes',
     ];
 
     public function invoice(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class, 'faktura_id');
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'produkt_id');
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_id');
     }
 }

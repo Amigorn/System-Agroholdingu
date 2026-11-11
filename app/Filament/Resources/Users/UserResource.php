@@ -26,6 +26,10 @@ class UserResource extends Resource
     // Polskie nazwy w menu bocznym
     protected static ?string $navigationLabel = 'Użytkownicy';
 
+    protected static ?string $pluralModelLabel = 'Użytkownicy';
+    protected static ?string $modelLabel = 'Użytkownika';
+
+
     // Tłumaczenie odmiany słowa dla automatycznych nagłówków Filamentu
     public static function getModelLabel(): string
     {

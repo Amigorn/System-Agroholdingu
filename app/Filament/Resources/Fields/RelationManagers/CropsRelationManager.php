@@ -59,6 +59,7 @@ class CropsRelationManager extends RelationManager
                     ->label('Uwagi')
                     ->limit(50),
             ])
+            ->defaultSort('season_id', 'desc')
             ->filters([
                 //
             ])

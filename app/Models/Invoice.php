@@ -12,16 +12,16 @@ class Invoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'numer',
-        'data_wystawienia',
-        'typ',
-        'kontrahent',
-        'wartosc',
-        'opis',
+        'number',
+        'issue_date',
+        'type',
+        'contractor',
+        'total',
+        'description',
     ];
 
     public function items(): HasMany
     {
-        return $this->hasMany(InvoiceItem::class, 'faktura_id');
+        return $this->hasMany(InvoiceItem::class, 'invoice_id');
     }
 }

@@ -14,36 +14,36 @@ class InvoicesTable
     {
         return $table
             ->columns([
-                TextColumn::make('numer')
+                TextColumn::make('number')
                     ->label('Numer faktury')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('data_wystawienia')
+                TextColumn::make('issue_date')
                     ->label('Data wystawienia')
                     ->date('d.m.Y')
                     ->sortable(),
 
-                TextColumn::make('typ')
+                TextColumn::make('type')
                     ->label('Typ dokumentu')
                     ->badge()
                     ->colors([
-                        'danger' => 'zakup',     // Koszt na czerwono
-                        'success' => 'sprzedaz', // Przychód na zielono
+                        'danger' => 'purchase',    // Zakup na czerwono
+                        'success' => 'sale',       // Sprzedaż na zielono
                     ])
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'zakup' => 'Zakup (Koszt)',
-                        'sprzedaz' => 'Sprzedaż (Przychód)',
+                        'purchase' => 'Zakup (Koszt)',
+                        'sale' => 'Sprzedaż (Przychód)',
                         default => $state,
                     })
                     ->searchable(),
 
-                TextColumn::make('kontrahent')
+                TextColumn::make('contractor')
                     ->label('Kontrahent')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('wartosc')
+                TextColumn::make('total')
                     ->label('Wartość (PLN)')
                     ->money('PLN')
                     ->sortable(),
@@ -61,7 +61,7 @@ class InvoicesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Tutaj w przyszłości możesz dodać filtry, np. SelectFilter dla typu
+                // Filtry
             ])
             ->recordActions([
                 EditAction::make(),

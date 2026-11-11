@@ -19,6 +19,8 @@ class TaskResource extends Resource
 {
 
     protected static ?string $navigationLabel = 'Zadania';
+    protected static ?string $pluralModelLabel = 'Zadania';
+    protected static ?string $modelLabel = 'Zadania';
     protected static ?string $model = Task::class;
 
     protected static string | UnitEnum | null $navigationGroup = 'Zarządzanie Gospodarstwem';

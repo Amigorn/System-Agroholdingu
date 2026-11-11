@@ -30,6 +30,7 @@ class SeasonsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('year', 'desc')
             ->filters([
                 //
             ])

@@ -21,7 +21,8 @@ class HarvestsTable
                     ->sortable(),
                 TextColumn::make('quantity')
                     ->label('Ilość')
-                    ->numeric()
+                    ->alignRight()
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' '))
                     ->sortable(),
                 TextColumn::make('unit.name')
                     ->label('Jednostka')

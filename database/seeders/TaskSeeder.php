@@ -2,16 +2,27 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Task;
+use App\Models\User;
+use App\Models\Field;
 use Illuminate\Database\Seeder;
 
 class TaskSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        //
+        $workers = User::all();
+        $fields = Field::all();
+
+        if ($workers->isEmpty() || $fields->isEmpty()) {
+            return;
+        }
+
+        for ($i = 0; $i < 20; $i++) {
+            Task::factory()->create([
+                'user_id' => $workers->random()->id,
+                'field_id' => $fields->random()->id,
+            ]);
+        }
     }
 }

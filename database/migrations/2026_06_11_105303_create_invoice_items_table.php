@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('invoice_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('faktura_id')->constrained('invoices')->cascadeOnDelete();
-            $table->foreignId('produkt_id')->constrained('products')->cascadeOnDelete();
-            $table->decimal('ilosc', 10, 2);
-            $table->decimal('cena_jednostkowa', 10, 2);
-            $table->decimal('wartosc', 10, 2);
-            $table->text('uwagi')->nullable();
+            $table->foreignId('invoice_id')->constrained('invoices')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('unit_id')->nullable()->constrained('unit_of_measures')->cascadeOnDelete(); // <-- DODANA KOLUMNA
+            $table->decimal('quantity', 10, 2);
+            $table->decimal('unit_price', 10, 2);
+            $table->decimal('total', 10, 2);
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }

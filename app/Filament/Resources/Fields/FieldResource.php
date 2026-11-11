@@ -18,6 +18,8 @@ use Filament\Tables\Table;
 class FieldResource extends Resource
 {
     protected static ?string $navigationLabel = 'Pola Uprawne';
+    protected static ?string $pluralModelLabel = 'Pola Uprawne';
+    protected static ?string $modelLabel = 'Pole Uprawne';
     protected static ?string $model = Field::class;
 
     protected static string | UnitEnum | null $navigationGroup = 'Produkcja Rolna';

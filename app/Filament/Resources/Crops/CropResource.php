@@ -22,6 +22,8 @@ class CropResource extends Resource
     protected static string | UnitEnum | null $navigationGroup = 'Produkcja Rolna';
 
     protected static ?string $navigationLabel = 'Uprawy';
+    protected static ?string $pluralModelLabel = 'Uprawy';
+    protected static ?string $modelLabel = 'Uprawe';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-sparkles';
 

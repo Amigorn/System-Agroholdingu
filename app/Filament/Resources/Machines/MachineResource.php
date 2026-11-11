@@ -18,6 +18,8 @@ use Filament\Tables\Table;
 class MachineResource extends Resource
 {
     protected static ?string $navigationLabel = 'Maszyny';
+    protected static ?string $pluralModelLabel = 'Maszyny';
+    protected static ?string $modelLabel = 'Maszyne';
 
     protected static string | UnitEnum | null $navigationGroup = 'Zarządzanie Gospodarstwem';
     protected static ?string $model = Machine::class;

@@ -2,16 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\UnitOfMeasure;
 use Illuminate\Database\Seeder;
 
 class UnitOfMeasureSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        //
+        UnitOfMeasure::factory()->create(['name' => 'Kilogramy', 'symbol' => 'kg']);
+        UnitOfMeasure::factory()->create(['name' => 'Litry', 'symbol' => 'l']);
+        UnitOfMeasure::factory()->create(['name' => 'Tony', 'symbol' => 't']);
     }
 }
