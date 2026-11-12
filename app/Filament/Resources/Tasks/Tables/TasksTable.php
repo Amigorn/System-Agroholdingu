@@ -4,7 +4,10 @@ namespace App\Filament\Resources\Tasks\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\Tasks\TaskResource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -74,10 +77,34 @@ class TasksTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+            SelectFilter::make('status')
+                ->label('Status zadania')
+                ->options([
+                    'planned' => 'Zaplanowane',
+                    'in_progress' => 'W toku',
+                    'completed' => 'Zakończone',
+                ])
+                ->native(false),        // Ładniejszy select w stylu Filamenta
             ])
             ->recordActions([
-                EditAction::make(),
+                Action::make('edit')
+                    ->icon('heroicon-m-pencil-square')
+                    ->button()
+                    ->label(false)
+                    ->color('warning')
+                    ->url(fn ($record) => TaskResource::getUrl('edit', [
+                    'record' => $record,
+                ])),
+                Action::make('delete')
+                    ->icon('heroicon-m-trash')
+                    ->button()
+                    ->label(false)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Usuń Zadanie')
+                    ->modalDescription('Czy na pewno chcesz to zrobić?')
+                    ->modalSubmitActionLabel('Tak, usuń')
+                    ->action(fn ($record) => $record->delete()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

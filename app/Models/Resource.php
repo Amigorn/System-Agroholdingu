@@ -11,7 +11,13 @@ class Resource extends Model
     use HasFactory;
 
     protected $table = 'resources';
-    protected $fillable = ['name', 'unit_id'];
+    
+    // Dodajemy 'type' do $fillable
+    protected $fillable = [
+        'name',
+        'type',
+        'unit_id',
+    ];
 
     public function unit(): BelongsTo
     {

@@ -7,6 +7,7 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\Pages\ListProducts;
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
+use App\Filament\Resources\Products\RelationManagers\PricesRelationManager;
 use App\Models\Product;
 use BackedEnum;
 use UnitEnum;
@@ -43,7 +44,7 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+        PricesRelationManager::class, // <-- Tutaj podpinamy historię do produktu
         ];
     }
 

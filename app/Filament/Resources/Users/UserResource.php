@@ -14,6 +14,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope; // <-- Niezbędne do Soft Delete
 
 class UserResource extends Resource
 {
@@ -28,7 +30,6 @@ class UserResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Użytkownicy';
     protected static ?string $modelLabel = 'Użytkownika';
-
 
     // Tłumaczenie odmiany słowa dla automatycznych nagłówków Filamentu
     public static function getModelLabel(): string
@@ -49,6 +50,15 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return UsersTable::configure($table);
+    }
+
+    // Kluczowe dla Soft Delete: pozwala pobierać i obsługiwać usunięte rekordy przy routingu
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 
     public static function getRelations(): array

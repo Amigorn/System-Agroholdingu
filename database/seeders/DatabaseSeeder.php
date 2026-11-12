@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             MachineSeeder::class,            // Maszyny i ciągniki
             ResourceSeeder::class,           // Zasoby (środki do produkcji)
             ProductSeeder::class,            // Produkty roślinne
+            ProductPriceSeeder::class,
             CropSeeder::class,               // Płodozmian (powiązanie pól z sezonami)
             TaskSeeder::class,               // Zadania / zabiegi agrotechniczne
             ResourceConsumptionSeeder::class,// Zużycie zasobów w zadaniach

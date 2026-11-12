@@ -10,29 +10,36 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        // Pobieramy domyślną jednostkę (np. tony)
-        $t = UnitOfMeasure::where('symbol', 't')->first() ?? UnitOfMeasure::first();
+        $tonne = UnitOfMeasure::where('symbol', 't')->first() ?? UnitOfMeasure::first();
+        $litre = UnitOfMeasure::where('symbol', 'l')->orWhere('symbol', 'litr')->first() ?? $tonne;
+        $kg = UnitOfMeasure::where('symbol', 'kg')->first() ?? $tonne;
 
-        // Lista unikalnych, roślinnych produktów rolniczych
-        $uniqueProducts = [
-            'Pszenica ozima',
-            'Rzepak ozimy',
-            'Kukurydza na ziarno',
-            'Jęczmień jary',
-            'Burak cukrowy',
-            'Groch siewny',
-            'Soja',
-            'Słonecznik',
-            'Żyto ozime',
-            'Owies',
+        // Przemieszana lista zawierająca plony oraz produkty przetworzone od samego początku
+        $productsToSeed = [
+            ['name' => 'Pszenica ozima', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Olej rzepakowy', 'unit' => $litre, 'type' => 'produkt_przetworzony'], // Przetworzony w top 10
+            ['name' => 'Rzepak ozimy', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Mąka pszenna', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],      // Przetworzony w top 10
+            ['name' => 'Kukurydza na ziarno', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Olej słonecznikowy', 'unit' => $litre, 'type' => 'produkt_przetworzony'], // Przetworzony w top 10
+            ['name' => 'Jęczmień jary', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Śruta rzepakowa', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],  // Przetworzony w top 10
+            ['name' => 'Burak cukrowy', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Mąka żytnia', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],      // Przetworzony w top 10
+            ['name' => 'Groch siewny', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Soja', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Słonecznik', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Żyto ozime', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Owies', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Otręby pszenne', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
         ];
 
-        foreach ($uniqueProducts as $productName) {
+        foreach ($productsToSeed as $item) {
             Product::firstOrCreate(
-                ['name' => $productName],
+                ['name' => $item['name']],
                 [
-                    'unit_id' => $t?->id,
-                    'type' => 'plon', // Wypełniamy wymagane pole 'type'
+                    'unit_id' => $item['unit']?->id,
+                    'type' => $item['type'],
                 ]
             );
         }

@@ -2,15 +2,18 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
-use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\Users\UserResource;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-
 use App\Models\User;
 
 class UsersTable
@@ -65,19 +68,48 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TrashedFilter::make()->label('Status usunięcia'),
             ])
             ->recordActions([
-                ViewAction::make(),
-                ActionGroup::make([
-                    EditAction::make(),
-                    DeleteAction::make(),
-                ])
+                Action::make('edit')
+                    ->icon('heroicon-m-pencil-square')
+                    ->button()
+                    ->label(false)
+                    ->color('warning')
+                    ->url(fn ($record) => UserResource::getUrl('edit', [
+                        'record' => $record,
+                    ])),
+
+                // Standardowe miękkie usunięcie (przeniesienie do kosza)
+                Action::make('delete')
+                    ->icon('heroicon-m-trash')
+                    ->button()
+                    ->label(false)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Usuń Użytkownika')
+                    ->modalDescription('Czy na pewno chcesz przenieść tego użytkownika do kosza?')
+                    ->modalSubmitActionLabel('Tak, usuń')
+                    ->visible(fn ($record) => !$record->trashed())
+                    ->action(fn ($record) => $record->delete()),
+
+                // Przywrócenie z kosza gotową akcją Filamenta
+                RestoreAction::make()
+                    ->icon('heroicon-m-arrow-uturn-left')
+                    ->button()
+                    ->label(false),
+
+                // Trwałe usunięcie z bazy gotową akcją Filamenta
+                ForceDeleteAction::make()
+                    ->icon('heroicon-m-x-circle')
+                    ->button()
+                    ->label(false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label('Usuń wybrane'), // Polskie akcje masowe
+                    DeleteBulkAction::make()->label('Usuń wybrane'),
+                    RestoreBulkAction::make()->label('Przywróć wybrane'),
+                    ForceDeleteBulkAction::make()->label('Usuń trwale wybrane'),
                 ])->label('Akcje masowe'),
             ]);
     }

@@ -8,22 +8,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Machine extends Model
 {
-    use HasFactory; // <-- Musi być tutaj
+    use HasFactory;
 
     protected $fillable = ['name', 'type', 'status', 'description'];
 
-    public function tasks(): HasMany
+    // Historia zadań, w których maszyna była używana jako maszyna towarzysząca
+    public function tasksAsMachine(): HasMany
     {
-        return $this->hasMany(Task::class);
+        return $this->hasMany(Task::class, 'machine_id');
     }
 
-    public function tractor()
-{
-    return $this->belongsTo(Machine::class, 'tractor_id');
-}
-
-public function machine()
-{
-    return $this->belongsTo(Machine::class, 'machine_id');
-}
+    // Jeśli ciągniki i maszyny są w tej samej tabeli machines:
+    public function tasksAsTractor(): HasMany
+    {
+        return $this->hasMany(Task::class, 'tractor_id');
+    }
 }

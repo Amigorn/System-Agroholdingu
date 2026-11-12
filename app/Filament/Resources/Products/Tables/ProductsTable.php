@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Products\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\Products\ProductResource;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -54,7 +56,24 @@ class ProductsTable
                     ]),
             ])
             ->recordActions([
-                EditAction::make(),
+                Action::make('edit')
+                    ->icon('heroicon-m-pencil-square')
+                    ->button()
+                    ->label(false)
+                    ->color('warning')
+                    ->url(fn ($record) => ProductResource::getUrl('edit', [
+                    'record' => $record,
+                ])),
+                Action::make('delete')
+                    ->icon('heroicon-m-trash')
+                    ->button()
+                    ->label(false)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Usuń Produkt')
+                    ->modalDescription('Czy na pewno chcesz to zrobić?')
+                    ->modalSubmitActionLabel('Tak, usuń')
+                    ->action(fn ($record) => $record->delete()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

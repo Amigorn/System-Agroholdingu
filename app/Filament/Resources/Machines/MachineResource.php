@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Machines;
 use App\Filament\Resources\Machines\Pages\CreateMachine;
 use App\Filament\Resources\Machines\Pages\EditMachine;
 use App\Filament\Resources\Machines\Pages\ListMachines;
+use App\Filament\Resources\Machines\RelationManagers\TasksRelationManager; // <-- Dodany import relacji
 use App\Filament\Resources\Machines\Schemas\MachineForm;
 use App\Filament\Resources\Machines\Tables\MachinesTable;
 use App\Models\Machine;
@@ -19,7 +20,7 @@ class MachineResource extends Resource
 {
     protected static ?string $navigationLabel = 'Maszyny';
     protected static ?string $pluralModelLabel = 'Maszyny';
-    protected static ?string $modelLabel = 'Maszyne';
+    protected static ?string $modelLabel = 'Maszynę'; // Poprawiona literówka
 
     protected static string | UnitEnum | null $navigationGroup = 'Zarządzanie Gospodarstwem';
     protected static ?string $model = Machine::class;
@@ -39,7 +40,7 @@ class MachineResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TasksRelationManager::class,
         ];
     }
 
