@@ -2,69 +2,122 @@
 
 namespace App\Filament\Resources\Machines\RelationManagers;
 
-use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
+use App\Models\TaskMachine;
+use Filament\Actions\ViewAction;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TasksRelationManager extends RelationManager
 {
-    protected static string $relationship = 'tasksAsMachine';
+    protected static string $relationship = 'tasksAsMachine'; 
 
-    protected static ?string $title = 'Historia użycia maszyny';
+    protected static ?string $title = 'Historia użycia maszyny w zadaniach';
 
-    public function form(Schema $schema): Schema
+    // Kluczowa zmiana: pobieramy wpisy dla maszyny jako ciągnik LUB jako maszyna towarzysząca
+    public function getTableQuery(): Builder
+    {
+        $machineId = $this->getOwnerRecord()->id;
+
+        return TaskMachine::query()
+            ->where(function (Builder $query) use ($machineId) {
+                $query->where('machine_id', $machineId)
+                      ->orWhere('tractor_id', $machineId);
+            })
+            ->whereHas('task', function (Builder $q) {
+                $q->where('status', 'completed');
+            })
+            ->with(['task.field', 'user', 'tractor', 'machine']);
+    }
+
+    // Widok szczegółów (podgląd) oparty na Infolist i TextEntry
+    public function infolist(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('type')
-                    ->label('Zabieg')
-                    ->required()
-                    ->maxLength(255),
+                // --- INFORMACJE Z ZADANIA (TASK) ---
+                TextEntry::make('task.type')
+                    ->label('Typ zabiegu'),
+
+                TextEntry::make('task.field.name')
+                    ->label('Pole uprawne')
+                    ->placeholder('Brak pola'),
+
+                TextEntry::make('task.status')
+                    ->label('Status zadania')
+                    ->badge()
+                    ->color('success')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'completed' => 'Zakończone',
+                        'in_progress' => 'W toku',
+                        'planned' => 'Zaplanowane',
+                        default => $state,
+                    }),
+
+                TextEntry::make('task.planned_at')
+                    ->label('Data planowana')
+                    ->dateTime('Y-m-d H:i'),
+
+                TextEntry::make('task.completed_at')
+                    ->label('Data zakończenia')
+                    ->dateTime('Y-m-d H:i'),
+
+                TextEntry::make('task.description')
+                    ->label('Opis / Instrukcja zadania')
+                    ->placeholder('Brak opisu')
+                    ->columnSpanFull(),
+
+                // --- INFORMACJE Z ZESTAWU ROBOCZEGO (TASK_MACHINE) ---
+                TextEntry::make('tractor.name')
+                    ->label('Użyty ciągnik / Kombajn')
+                    ->placeholder('Brak'),
+
+                TextEntry::make('machine.name')
+                    ->label('Użyta maszyna towarzysząca')
+                    ->placeholder('Brak'),
+
+                TextEntry::make('user')
+                    ->label('Operator / Kierowca')
+                    ->formatStateUsing(fn ($record) => $record->user ? "{$record->user->first_name} {$record->user->last_name}" : 'Nie przypisano'),
+
+                TextEntry::make('notes')
+                    ->label('Uwagi do zestawu / Rola')
+                    ->placeholder('Brak uwag')
+                    ->columnSpanFull(),
             ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('type')
+            ->recordTitleAttribute('id')
             ->columns([
-                TextColumn::make('type')
+                TextColumn::make('task.type')
                     ->label('Zabieg')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('field.name')
-                    ->label('Pole')
-                    ->sortable(),
-
-                TextColumn::make('status')
-                    ->label('Status')
+                TextColumn::make('task.field.name')
+                    ->label('Pole uprawne')
                     ->sortable()
+                    ->placeholder('Brak pola'),
+
+                TextColumn::make('user')
+                    ->label('Operator')
+                    ->formatStateUsing(fn ($record) => $record->user ? "{$record->user->first_name} {$record->user->last_name}" : 'Nie przypisano')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'planned' => 'info',
-                        'in_progress' => 'warning',
-                        'completed' => 'success',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'planned' => 'Zaplanowane',
-                        'in_progress' => 'W toku',
-                        'completed' => 'Zakończone',
-                        default => $state,
-                    }),
+                    ->color(fn ($record) => $record->user ? 'success' : 'gray'),
 
-                TextColumn::make('planned_at')
-                    ->label('Data planowana')
-                    ->dateTime('Y-m-d H:i')
-                    ->sortable(),
+                TextColumn::make('task.status')
+                    ->label('Status')
+                    ->badge()
+                    ->color('success')
+                    ->formatStateUsing(fn () => 'Zakończone'),
 
-                TextColumn::make('completed_at')
+                TextColumn::make('task.completed_at')
                     ->label('Data zakończenia')
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
@@ -73,12 +126,10 @@ class TasksRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                // Zadania są zazwyczaj tworzone w module zadań, ale możesz odkomentować, jeśli potrzebujesz
-                // CreateAction::make(),
+                //
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                ViewAction::make()->label('Szczegóły'),
             ]);
     }
 }

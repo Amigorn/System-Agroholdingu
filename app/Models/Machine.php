@@ -12,15 +12,14 @@ class Machine extends Model
 
     protected $fillable = ['name', 'type', 'status', 'description'];
 
-    // Historia zadań, w których maszyna była używana jako maszyna towarzysząca
-    public function tasksAsMachine(): HasMany
-    {
-        return $this->hasMany(Task::class, 'machine_id');
-    }
-
-    // Jeśli ciągniki i maszyny są w tej samej tabeli machines:
+    // Zadania, w których ta maszyna była ciągnikiem
     public function tasksAsTractor(): HasMany
     {
-        return $this->hasMany(Task::class, 'tractor_id');
+        return $this->hasMany(TaskMachine::class, 'tractor_id');
+    }
+
+    public function tasksAsMachine(): HasMany
+    {
+        return $this->hasMany(TaskMachine::class, 'machine_id');
     }
 }

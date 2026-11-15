@@ -3,8 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Field;
-use App\Models\Machine;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TaskFactory extends Factory
@@ -19,22 +17,14 @@ class TaskFactory extends Factory
             : null;
 
         return [
-            'type' => fake()->randomElement(['Orka', 'Siew', 'Oprysk', 'Omłot', 'Nawożenie']),
+            'type' => fake()->randomElement(['Orka', 'Siew', 'Oprysk', 'Nawożenie']),
             'planned_at' => $plannedAt,
             'completed_at' => $completedAt,
             'status' => $status,
             'description' => fake()->optional()->text(100),
             
-            'user_id' => User::inRandomOrder()->first()?->id ?? User::factory(),
+            // Zostaje tylko pole powiązania z polem uprawnym
             'field_id' => Field::inRandomOrder()->first()?->id ?? Field::factory(),
-            
-            // Ciągnik
-            'tractor_id' => Machine::where('type', 'Ciągnik')->inRandomOrder()->first()?->id 
-                ?? Machine::factory()->state(['type' => 'Ciągnik'])->create()->id,
-            
-            // Maszyna towarzysząca (z dodanym ->create()->id)
-            'machine_id' => Machine::where('type', '!=', 'Ciągnik')->inRandomOrder()->first()?->id 
-                ?? Machine::factory()->state(['type' => 'Pług'])->create()->id,
         ];
     }
 }

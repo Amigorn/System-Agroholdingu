@@ -13,33 +13,6 @@ class TaskForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('user_id')
-                ->label('Pracownik')
-                ->relationship('user', 'email')
-                ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->first_name} {$record->last_name}")
-                ->required()
-                ->searchable(),
-
-            Select::make('field_id')
-                ->label('Pole uprawne')
-                ->relationship('field', 'name')
-                ->required()
-                ->searchable()
-                ->preload(),
-
-            Select::make('tractor_id')
-                ->label('Ciągnik / Jednostka napędowa')
-                ->relationship('tractor', 'name', fn ($query) => $query->where('type', 'Ciągnik'))
-                ->required()
-                ->searchable()
-                ->preload(),
-
-            Select::make('machine_id')
-                ->label('Maszyna / Narzędzie towarzyszące')
-                ->relationship('machine', 'name', fn ($query) => $query->where('type', '!=', 'Ciągnik'))
-                ->searchable()
-                ->preload(),
-
             TextInput::make('type')
                 ->label('Rodzaj zabiegu')
                 ->datalist([
@@ -49,23 +22,26 @@ class TaskForm
                     'Siew',
                 ])
                 ->required(),
-
+            Select::make('field_id')
+                ->label('Pole uprawne')
+                ->relationship('field', 'name')
+                ->required()
+                ->searchable()
+                ->preload(),
             Select::make('status')
                 ->label('Status')
+                ->default('planned')
                 ->options([
                     'planned' => 'Zaplanowane',
                     'in_progress' => 'W toku',
                     'completed' => 'Zakończone',
                 ])
                 ->required(),
-
             DateTimePicker::make('planned_at')
                 ->label('Data planowana')
                 ->required(),
-
             DateTimePicker::make('completed_at')
                 ->label('Data zakończenia'),
-
             Textarea::make('description')
                 ->label('Opis zadania')
                 ->columnSpanFull(),

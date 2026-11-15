@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Pracownicy
-        User::factory(10)->create();
+        User::factory(30)->create();
 
         // 2-14. Pozostałe seedery systemowe
         $this->call([

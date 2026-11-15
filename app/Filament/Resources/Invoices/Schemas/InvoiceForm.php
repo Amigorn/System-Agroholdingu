@@ -26,7 +26,31 @@ class InvoiceForm
                 DatePicker::make('issue_date')
                     ->label('Data wystawienia')
                     ->required()
-                    ->default(now()),
+                    ->default(now())
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        $items = $get('items') ?? [];
+                        $issueDate = $state;
+
+                        if (!$issueDate) {
+                            return;
+                        }
+
+                        foreach ($items as $uuid => $item) {
+                            if (!empty($item['product_id'])) {
+                                $product = Product::find($item['product_id']);
+                                $unitPrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $quantity = (int) ($item['quantity'] ?? 1);
+                                
+                                $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
+
+                                $set("items.{$uuid}.unit_price", number_format($unitPrice, 2, '.', ''));
+                                $set("items.{$uuid}.total", $itemTotal);
+                            }
+                        }
+
+                        self::updateInvoiceTotal($set, $get);
+                    }),
 
                 Select::make('type')
                     ->label('Typ dokumentu')
@@ -41,21 +65,20 @@ class InvoiceForm
                     ->required()
                     ->maxLength(255),
 
-                // Całkowita wartość wyliczana automatycznie ze sumy pozycji
+                // Główna wartość netto z wymuszonym formatem 2 miejsc po przecinku
                 TextInput::make('total')
                     ->label('Całkowita wartość netto (PLN)')
                     ->required()
-                    ->numeric()
+                    ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2, '.', ''))
                     ->readOnly()
                     ->dehydrated()
-                    ->default(0.0),
+                    ->default('0.00'),
 
                 Textarea::make('description')
                     ->label('Opis / Uwagi do faktury')
-                    ->maxLength(500)
-                    ->columnSpanFull(),
+                    ->maxLength(500),
 
-                // Kompaktowy Repeater z pozycjami
+                // Repeater z pozycjami
                 Repeater::make('items')
                     ->relationship('items')
                     ->label('Pozycje faktury')
@@ -66,6 +89,28 @@ class InvoiceForm
                             ->required()
                             ->searchable()
                             ->preload()
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if (!$state) {
+                                    $set('unit_price', '0.00');
+                                    $set('total', '0.00');
+                                    self::updateInvoiceTotal($set, $get);
+                                    return;
+                                }
+
+                                $issueDate = $get('../../issue_date') ?? now();
+                                $product = Product::find($state);
+
+                                $unitPrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $quantity = (int) ($get('quantity') ?? 1);
+                                
+                                $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
+
+                                $set('unit_price', number_format($unitPrice, 2, '.', ''));
+                                $set('total', $itemTotal);
+
+                                self::updateInvoiceTotal($set, $get);
+                            })
                             ->columnSpan(['default' => 12, 'md' => 3]),
 
                         TextInput::make('quantity')
@@ -83,7 +128,8 @@ class InvoiceForm
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 $quantity = (int) $state;
                                 $unitPrice = (float) $get('unit_price');
-                                $itemTotal = round($quantity * $unitPrice, 2);
+                                
+                                $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
                                 
                                 $set('total', $itemTotal);
                                 self::updateInvoiceTotal($set, $get);
@@ -96,30 +142,66 @@ class InvoiceForm
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->columnSpan(['default' => 6, 'md' => 2]),
-
-                        TextInput::make('unit_price')
-                            ->label('Cena jedn. netto')
-                            ->numeric()
-                            ->required()
-                            ->live(onBlur: true)
+                            ->live()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                $unitPrice = (float) $state;
-                                $quantity = (int) $get('quantity');
-                                $itemTotal = round($quantity * $unitPrice, 2);
-                                
-                                $set('total', $itemTotal);
+                                // Pobieramy wybraną jednostkę oraz produkt
+                                $unit = UnitOfMeasure::find($state);
+                                $productId = $get('product_id');
+                                $issueDate = $get('../../issue_date') ?? now();
+                                $quantity = (int) ($get('quantity') ?? 1);
+
+                                if ($productId) {
+                                    $product = Product::find($productId);
+                                    // Pobieramy bazową cenę z cennika
+                                    $basePrice = $product ? $product->getPriceForDate($issueDate) : 0;
+
+                                    $symbol = $unit ? strtolower($unit->symbol) : '';
+
+                                    $unitPrice = $basePrice;
+                                    if ($symbol === 'kg' || $symbol === 'g') {
+                                        $unitPrice = $basePrice / 1000; 
+                                    }
+
+                                    $formattedPrice = number_format($unitPrice, 2, '.', '');
+                                    $set('unit_price', $formattedPrice);
+
+                                    $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
+                                    $set('total', $itemTotal);
+                                }
+
                                 self::updateInvoiceTotal($set, $get);
                             })
                             ->columnSpan(['default' => 6, 'md' => 2]),
 
+                        TextInput::make('unit_price')
+                            ->label('Cena jedn. netto')
+                            ->required()
+                            ->inputMode('decimal')
+                            ->rule('numeric')
+                            ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2, '.', ''))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $unitPrice = (float) str_replace(',', '.', $state);
+                                $quantity = (int) $get('quantity');
+
+                                $formattedPrice = number_format($unitPrice, 2, '.', '');
+                                $set('unit_price', $formattedPrice);
+
+                                $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
+                                $set('total', $itemTotal);
+
+                                self::updateInvoiceTotal($set, $get);
+                            })
+                            ->columnSpan(['default' => 6, 'md' => 2]),
+
+                        // Wartość netto pozycji z wymuszonym formatem 2 miejsc po przecinku
                         TextInput::make('total')
                             ->label('Wartość netto')
-                            ->numeric()
                             ->required()
+                            ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2, '.', ''))
                             ->readOnly()
                             ->dehydrated()
-                            ->default(0.0)
+                            ->default('0.00')
                             ->columnSpan(['default' => 6, 'md' => 3]),
 
                         Textarea::make('notes')
@@ -130,9 +212,9 @@ class InvoiceForm
                     ])
                     ->columns(12)
                     ->columnSpanFull()
-                    ->addActionLabel('Dodaj pozycję')
                     ->collapsible()
                     ->collapsed()
+                    ->addActionLabel('Dodaj pozycję')
                     ->itemLabel(function (array $state, ?string $uuid, Repeater $component): ?string {
                         $keys = array_keys($component->getState());
                         $index = $uuid ? array_search($uuid, $keys) : false;
@@ -176,6 +258,6 @@ class InvoiceForm
             $total += (float) ($item['total'] ?? 0);
         }
 
-        $set('../../total', round($total, 2));
+        $set('../../total', number_format($total, 2, '.', ''));
     }
 }

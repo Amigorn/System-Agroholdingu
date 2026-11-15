@@ -4,7 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
@@ -17,9 +19,8 @@ class Task extends Model
         'status', 
         'description', 
         'user_id', 
-        'machine_id', 
-        'tractor_id', // <-- Dopisane pole dla ciągnika
         'field_id'
+        // Brak tractor_id i machine_id – wszystko idzie przez tabelę pośrednią
     ];
 
     public function user(): BelongsTo
@@ -27,18 +28,22 @@ class Task extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function machine(): BelongsTo
-    {
-        return $this->belongsTo(Machine::class, 'machine_id');
-    }
-
-    public function tractor(): BelongsTo
-    {
-        return $this->belongsTo(Machine::class, 'tractor_id'); // <-- Dopisana relacja dla ciągnika
-    }
-
     public function field(): BelongsTo
     {
         return $this->belongsTo(Field::class);
+    }
+
+    public function taskMachines(): HasMany
+    {
+        return $this->hasMany(TaskMachine::class);
+    }
+    /**
+     * Wiele maszyn i pojazdów przypisanych do zadania przez tabelę pośrednią machine_task
+     */
+    public function machines(): BelongsToMany
+    {
+        return $this->belongsToMany(Machine::class, 'machine_task')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 }

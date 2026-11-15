@@ -21,7 +21,7 @@ class ProductPriceForm
                     ->preload(),
 
                 TextInput::make('price')
-                    ->label('Cena (PLN)')
+                    ->label('Cena')
                     ->numeric()
                     ->prefix('PLN')
                     ->required()

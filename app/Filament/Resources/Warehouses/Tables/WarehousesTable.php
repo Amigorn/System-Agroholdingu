@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\Warehouses\WarehouseResource;
 use Filament\Tables\Table;
 
 class WarehousesTable
@@ -40,7 +41,7 @@ class WarehousesTable
                     ->button()
                     ->label(false)
                     ->color('warning')
-                    ->url(fn ($record) => InvoiceResource::getUrl('edit', [
+                    ->url(fn ($record) => WarehouseResource::getUrl('edit', [
                     'record' => $record,
                 ])),
                 Action::make('delete')

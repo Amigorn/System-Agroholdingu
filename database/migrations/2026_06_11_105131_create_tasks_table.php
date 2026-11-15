@@ -18,9 +18,6 @@ return new class extends Migration
         $table->dateTime('completed_at')->nullable();
         $table->string('status');
         $table->text('description')->nullable();
-        
-        // Klucze obce w standardzie Laravela
-        $table->foreignId('user_id')->constrained()->onDelete('cascade');
         $table->foreignId('machine_id')->nullable()->constrained()->onDelete('set null');
         $table->foreignId('field_id')->constrained()->onDelete('cascade');
         

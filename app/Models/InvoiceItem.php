@@ -20,6 +20,11 @@ class InvoiceItem extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'unit_price' => 'decimal:2',
+        'total' => 'decimal:2',
+    ];
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class, 'invoice_id');

@@ -20,6 +20,10 @@ class Invoice extends Model
         'description',
     ];
 
+    protected $casts = [
+        'total' => 'decimal:2',
+    ];
+
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class, 'invoice_id');
