@@ -12,6 +12,11 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Machine;
+use App\Models\Resource;
+use App\Models\ResourceConsumption;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 
 class TasksTable
 {
@@ -33,6 +38,12 @@ class TasksTable
                     ->label('Status')
                     ->sortable()
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'planned' => 'Zaplanowane',
+                        'in_progress' => 'W trakcie',
+                        'completed' => 'Zakończone',
+                        default => $state,
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'planned' => 'info',
                         'in_progress' => 'warning',
@@ -83,7 +94,7 @@ class TasksTable
             ])
             ->recordActions([
                 // Przycisk "Rozpocznij" - widoczny tylko dla statusu 'planned'
-               Action::make('startTask')
+                Action::make('startTask')
                     ->label('Rozpocznij')
                     ->icon('heroicon-m-play')
                     ->button()
@@ -115,25 +126,119 @@ class TasksTable
                             ->send();
                     }),
 
-                // Przycisk "Zakończ"
                 Action::make('completeTask')
                     ->label('Zakończ')
                     ->icon('heroicon-m-check-circle')
                     ->button()
                     ->color('success')
                     ->visible(fn ($record) => $record->status === 'in_progress')
-                    ->requiresConfirmation()
-                    ->modalHeading('Zakończenie zadania')
-                    ->modalDescription('Czy zadanie zostało ukończone? Spowoduje to zwolnienie przypisanych maszyn i operatorów.')
-                    ->modalSubmitActionLabel('Tak, zakończ')
-                    ->action(function ($record) {
-                        // 1. Zmieniamy status zadania i ustawiamy datę
+                    ->modalHeading('Zakończenie zadania i rozliczenie zasobów')
+                    ->modalDescription('Wprowadź zużyte paliwo oraz inne materiały. Spowoduje to zwolnienie przypisanych maszyn i operatorów.')
+                    ->modalSubmitActionLabel('Zakończ zadanie')
+                    ->form([
+                        // 1. Szybkie, dedykowane pole na paliwo na samym górze
+                        TextInput::make('fuel_liters')
+                            ->label('Zużyte paliwo (litry)')
+                            ->numeric()
+                            ->step('0.01')
+                            ->placeholder('Wpisz ilość zużytego paliwa (ON / Pb) w litrach')
+                            ->rules(['required', 'numeric', 'min:0.01'])
+                            ->validationMessages([
+                                'required' => 'Pole zużyte paliwo jest wymagane.',
+                                'numeric' => 'Wartość musi być liczbą.',
+                                'min' => 'Ilość paliwa musi wynosić co najmniej 0.01 litra.',
+                            ])
+                            ->required()
+                            ->columnSpanFull(),
+
+                        // 2. Repeater na pozostałe surowce z osobnym polem jednostki miary
+                        Repeater::make('consumptions')
+                            ->label('Inne zużyte surowce / materiały')
+                            ->schema([
+                                Select::make('resource_id')
+                                    ->label('Surowiec')
+                                    ->options(Resource::query()->pluck('name', 'id'))
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->validationMessages([
+                                        'required' => 'Pole surowiec jest wymagane.',
+                                    ])
+                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                    ->live() // Nasłuchujemy zmiany surowca
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if (!$state) {
+                                            $set('unit_symbol', '');
+                                            return;
+                                        }
+                                        // Pobieramy jednostkę powiązaną z surowcem
+                                        $resource = Resource::with('unit')->find($state);
+                                        $symbol = $resource?->unit?->symbol ?? 'szt';
+                                        $set('unit_symbol', $symbol);
+                                    })
+                                    ->columnSpan(['default' => 12, 'md' => 6]),
+
+                                TextInput::make('quantity')
+                                    ->label('Zużyta ilość')
+                                    ->numeric()
+                                    ->step('0.01')
+                                    ->rules(['numeric', 'min:0.01'])
+                                    ->validationMessages([
+                                        'required' => 'Pole ilość jest wymagane.',
+                                        'numeric' => 'Wartość musi być liczbą.',
+                                        'min' => 'Zużyta ilość musi wynosić co najmniej 0.01.',
+                                    ])
+                                    ->required()
+                                    ->default(1)
+                                    ->columnSpan(['default' => 6, 'md' => 4]),
+
+                                    // Osobne pole tekstowe pokazujące jednostkę miary
+                                TextInput::make('unit_symbol')
+                                    ->label('Jednostka')
+                                    ->readOnly()
+                                    ->dehydrated(false) // Nie zapisujemy tego pola w bazie (jednostka wynika z surowca)
+                                    ->placeholder('-')
+                                    ->columnSpan(['default' => 6, 'md' => 2]),
+                            ])
+                            ->columns(12)
+                            ->addActionLabel('Dodaj kolejny surowiec')
+                            ->columnSpanFull(),
+                    ])
+                    ->action(function ($record, array $data) {
+                        // 1. Obsługa zużycia paliwa
+                        if (!empty($data['fuel_liters']) && (float)$data['fuel_liters'] > 0) {
+                            $fuelResource = Resource::where('name', 'LIKE', '%paliwo%')
+                                ->orWhere('name', 'LIKE', '%ON%')
+                                ->orWhere('name', 'LIKE', '%diesel%')
+                                ->first();
+
+                            if ($fuelResource) {
+                                ResourceConsumption::create([
+                                    'task_id' => $record->id,
+                                    'resource_id' => $fuelResource->id,
+                                    'quantity' => $data['fuel_liters'],
+                                ]);
+                            }
+                        }
+
+                        // 2. Zapisujemy pozostałe surowce z repeater'a
+                        if (!empty($data['consumptions'])) {
+                            foreach ($data['consumptions'] as $item) {
+                                ResourceConsumption::create([
+                                    'task_id' => $record->id,
+                                    'resource_id' => $item['resource_id'],
+                                    'quantity' => $item['quantity'],
+                                ]);
+                            }
+                        }
+
+                        // 3. Zmieniamy status zadania i ustawiamy datę
                         $record->update([
                             'status' => 'completed',
                             'completed_at' => now(),
                         ]);
 
-                        // 2. Zwalniamy sprzęt - zmieniamy status maszyn z powrotem na "dostępna"
+                        // 4. Zwalniamy sprzęt
                         foreach ($record->taskMachines as $tm) {
                             if ($tm->tractor_id) {
                                 Machine::where('id', $tm->tractor_id)->update(['status' => 'available']);
@@ -144,7 +249,7 @@ class TasksTable
                         }
 
                         Notification::make()
-                            ->title('Zadanie zakończone, sprzęt zwolniony')
+                            ->title('Zadanie zakończone, paliwo i surowce rozliczone!')
                             ->success()
                             ->send();
                     }),

@@ -23,7 +23,7 @@ class InvoiceResource extends Resource
 
     protected static ?string $navigationLabel = 'Faktury';
 
-    protected static ?string $modelLabel = 'Faktura';  
+    protected static ?string $modelLabel = 'Fakture';  
              
     protected static ?string $pluralModelLabel = 'Faktury';
 

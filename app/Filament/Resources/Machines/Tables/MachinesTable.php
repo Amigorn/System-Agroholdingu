@@ -23,6 +23,12 @@ class MachinesTable
             TextColumn::make('status')
                 ->label('Status')
                 ->badge()
+                ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'available' => 'Dostępny',
+                        'in_use' => 'W użyciu',
+                        'under_repair' => 'W naprawie',
+                        default => $state,
+                    })
                 ->color(fn (string $state): string => match ($state) {
                     'available' => 'success',
                     'in_use' => 'warning',

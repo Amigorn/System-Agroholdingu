@@ -21,7 +21,16 @@ class InvoiceForm
                     ->label('Numer faktury')
                     ->placeholder('np. FV/123/2026')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->rules([
+                        'required',
+                        // Wyrażenie regularne dopasowujące format FV/coś/rok (np. FV/123/2026 lub FV/AB-45/2026)
+                        'regex:/^FV\/[A-Za-z0-9\-\/]+\/\d{4}$/',
+                    ])
+                    ->validationMessages([
+                        'required' => 'Numer faktury jest wymagany.',
+                        'regex' => 'Nieprawidłowy format. Numer musi być w formacie np. FV/123/2026.',
+                    ]),
 
                 DatePicker::make('issue_date')
                     ->label('Data wystawienia')
@@ -63,7 +72,18 @@ class InvoiceForm
                 TextInput::make('contractor')
                     ->label('Kontrahent')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->rules([
+                        'required',
+                        'string',
+                        'min:2', // Nazwa kontrahenta musi mieć co najmniej 2 znaki
+                        'regex:/[a-zA-ZĄĆĘŁŃÓŚŹŻąćęłńóśźż]/', // Wymaga przynajmniej jednej litery (chroni przed wpisaniem samych cyfr lub spacji)
+                    ])
+                    ->validationMessages([
+                        'required' => 'Nazwa kontrahenta jest wymagana.',
+                        'min' => 'Nazwa kontrahenta musi mieć co najmniej 2 znaki.',
+                        'regex' => 'Nazwa kontrahenta musi zawierać poprawne litery.',
+                    ]),
 
                 // Główna wartość netto z wymuszonym formatem 2 miejsc po przecinku
                 TextInput::make('total')

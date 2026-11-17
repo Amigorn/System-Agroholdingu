@@ -47,7 +47,7 @@ class InvoicesTable
 
                 TextColumn::make('total')
                     ->alignRight()
-                    ->label('Wartość (PLN)')
+                    ->label('Wartość')
                     ->money('PLN')
                     ->sortable(),
 

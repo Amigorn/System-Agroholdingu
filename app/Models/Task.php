@@ -37,6 +37,11 @@ class Task extends Model
     {
         return $this->hasMany(TaskMachine::class);
     }
+
+    public function resourceConsumptions(): HasMany
+{
+    return $this->hasMany(ResourceConsumption::class, 'task_id');
+}
     /**
      * Wiele maszyn i pojazdów przypisanych do zadania przez tabelę pośrednią machine_task
      */

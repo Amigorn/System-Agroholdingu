@@ -11,13 +11,19 @@ class ResourceConsumption extends Model
     /** @use HasFactory<\Database\Factories\ResourceConsumptionFactory> */
     use HasFactory;
 
-   protected $fillable = ['ilosc', 'zadanie_id', 'surowiec_id'];
+    protected $fillable = [
+        'quantity', 
+        'task_id', 
+        'resource_id',
+    ];
 
-public function zadanie() { 
-    return $this->belongsTo(Task::class, 'zadanie_id'); 
-}
-public function surowiec() { 
-    return $this->belongsTo(Resource::class, 'surowiec_id'); 
-} 
-}
+    public function task(): BelongsTo 
+    { 
+        return $this->belongsTo(Task::class, 'task_id'); 
+    }
 
+    public function resource(): BelongsTo 
+    { 
+        return $this->belongsTo(Resource::class, 'resource_id'); 
+    } 
+}

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Tasks;
 
 use App\Filament\Resources\Tasks\RelationManagers\TaskMachinesRelationManager;
+use App\Filament\Resources\Tasks\RelationManagers\ResourceConsumptionsRelationManager;
 use App\Filament\Resources\Tasks\Pages\CreateTask;
 use App\Filament\Resources\Tasks\Pages\EditTask;
 use App\Filament\Resources\Tasks\Pages\ListTasks;
@@ -41,6 +42,7 @@ class TaskResource extends Resource
     {
         return [
             TaskMachinesRelationManager::class,
+            ResourceConsumptionsRelationManager::class,
         ];
     }
 

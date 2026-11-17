@@ -25,10 +25,10 @@ class ProductSeeder extends Seeder
             ['name' => 'Jęczmień jary', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Śruta rzepakowa', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],  // Przetworzony w top 10
             ['name' => 'Burak cukrowy', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Słonecznik', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Mąka żytnia', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],      // Przetworzony w top 10
             ['name' => 'Groch siewny', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Soja', 'unit' => $tonne, 'type' => 'plon'],
-            ['name' => 'Słonecznik', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Żyto ozime', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Owies', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Otręby pszenne', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],

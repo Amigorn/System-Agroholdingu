@@ -30,7 +30,7 @@ class UserFactory extends Factory
         'email' => fake()->unique()->safeEmail(),
         'email_verified_at' => now(),
         'password' => bcrypt('password'), // każde testowe konto będzie miało hasło: password
-        'remember_token' => \Illuminate\Support\Str::random(10),
+        'remember_token' => Str::random(10),
         'role' => fake()->randomElement(['admin', 'manager', 'worker']),
     ];
 }
