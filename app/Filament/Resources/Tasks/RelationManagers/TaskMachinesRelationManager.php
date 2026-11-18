@@ -39,7 +39,7 @@ class TaskMachinesRelationManager extends RelationManager
                             ->filter()
                             ->toArray();
 
-                        // 2. Ciągniki użyte już w INNYCH zestawach TIEGO SAMEGO zadania
+                        // 2. Ciągniki użyte już w INNYCH zestawach TEGO SAMEGO zadania
                         if ($currentTaskId) {
                             $currentTaskTractors = \DB::table('task_machines')
                                 ->where('task_id', $currentTaskId)
@@ -63,7 +63,15 @@ class TaskMachinesRelationManager extends RelationManager
                     })
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->live() // <--- Włączamy reaktywność, aby pole 'machine_id' reagowało na zmianę
+                    ->afterStateUpdated(function (callable $set, $state) {
+                        // Jeśli użytkownik zmieni pojazd na kombajn, automatycznie czścimy maszynę towarzyszącą
+                        $machine = Machine::find($state);
+                        if ($machine && $machine->type === 'Kombajn') {
+                            $set('machine_id', null);
+                        }
+                    }),
 
                 Select::make('machine_id')
                     ->label('Maszyna towarzysząca (Narzędzie)')
@@ -103,14 +111,39 @@ class TaskMachinesRelationManager extends RelationManager
                     })
                     ->searchable()
                     ->preload()
-                    ->placeholder('-- Sam pojazd (np. sam transport) --'),
+                    // Blokujemy pole i wymuszamy brak wartości, jeśli wybrano Kombajn
+                    ->disabled(function (callable $get): bool {
+                        $tractorId = $get('tractor_id');
+                        if (!$tractorId) return false;
+                        
+                        $machine = Machine::find($tractorId);
+                        return $machine && $machine->type === 'Kombajn';
+                    })
+                    // Wymagamy maszyny tylko wtedy, gdy wybrano Ciągnik
+                    ->required(function (callable $get): bool {
+                        $tractorId = $get('tractor_id');
+                        if (!$tractorId) return false;
+                        
+                        $machine = Machine::find($tractorId);
+                        return $machine && $machine->type === 'Ciągnik';
+                    })
+                    ->placeholder(function (callable $get): string {
+                        $tractorId = $get('tractor_id');
+                        if ($tractorId) {
+                            $machine = Machine::find($tractorId);
+                            if ($machine && $machine->type === 'Kombajn') {
+                                return 'Kombajn nie wymaga maszyny towarzyszącej';
+                            }
+                        }
+                        return 'Wybierz maszynę towarzyszącą';
+                    }),
 
                 Select::make('user_id')
                     ->label('Operator / Kierowca')
                     ->options(function (?Model $record): array {
                         $currentTaskId = $this->ownerRecord?->id;
 
-                        // 1. Operatori zajęci w INNYCH aktywnych zadaniach
+                        // 1. Operatorzy zajęci w INNYCH aktywnych zadaniach
                         $busyUserIds = \DB::table('task_machines')
                             ->join('tasks', 'tasks.id', '=', 'task_machines.task_id')
                             ->where('tasks.status', '!=', 'completed')
@@ -166,7 +199,7 @@ class TaskMachinesRelationManager extends RelationManager
 
                 TextColumn::make('machine.name')
                     ->label('Maszyna towarzysząca')
-                    ->placeholder('Brak (sam ciągnik)')
+                    ->placeholder('Brak (sam pojazd)')
                     ->searchable()
                     ->sortable(),
 
@@ -182,7 +215,9 @@ class TaskMachinesRelationManager extends RelationManager
                     ->placeholder('Brak uwag'),
             ])
             ->headerActions([
-                CreateAction::make()->label('Dodaj zestaw roboczy'),
+                CreateAction::make()
+                ->label('Dodaj zestaw roboczy')
+                ->modalHeading('Dodaj nowy zestaw roboczy'),
             ])
             ->recordActions([
                 EditAction::make(),

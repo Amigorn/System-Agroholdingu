@@ -6,10 +6,11 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
 use App\Filament\Resources\Machines\MachineResource;
+use app\Models\Machine;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-
+use Filament\Tables\Filters\SelectFilter;
 class MachinesTable
 {
     public static function configure(Table $table): Table
@@ -17,12 +18,15 @@ class MachinesTable
         return $table->columns([
             TextColumn::make('name')
                 ->label('Nazwa')
+                ->sortable()
                 ->searchable(),
             TextColumn::make('type')
-                ->label('Typ'),
+                ->label('Typ')
+                ->sortable(),
             TextColumn::make('status')
                 ->label('Status')
                 ->badge()
+                ->sortable()
                 ->formatStateUsing(fn (string $state): string => match ($state) {
                         'available' => 'Dostępny',
                         'in_use' => 'W użyciu',
@@ -47,8 +51,21 @@ class MachinesTable
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
+           ->filters([
+                SelectFilter::make('status')
+                    ->label('Status maszyny')
+                    ->options([
+                        'available' => 'Dostępny',
+                        'in_use' => 'W użyciu',
+                        'under_repair' => 'W naprawie',
+                    ])
+                    ->native(false),
+
+                SelectFilter::make('type')
+                    ->label('Typ maszyny')
+                    // Dynamiczne pobranie unikalnych typów bezpośrednio z bazy danych
+                    ->options(fn () => Machine::distinct()->pluck('type', 'type')->toArray())
+                    ->native(false),
             ])
             ->recordActions([
                 Action::make('edit')

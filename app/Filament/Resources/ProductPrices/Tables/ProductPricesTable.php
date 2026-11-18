@@ -6,9 +6,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
 use App\Filament\Resources\ProductPrices\ProductPriceResource;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductPricesTable
 {
@@ -37,10 +38,12 @@ class ProductPricesTable
                     ->date('d.m.Y')
                     ->placeholder('Bezterminowo')
                     ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
@@ -48,7 +51,19 @@ class ProductPricesTable
             ])
             ->defaultSort('valid_from', 'desc')
             ->filters([
-                //
+                Filter::make('only_active')
+                    ->label('Tylko aktualnie obowiązujące')
+                    ->default() // Domyślnie zaznaczony po wejściu na stronę
+                    ->query(function (Builder $query): Builder {
+                        $today = now()->toDateString();
+                        
+                        return $query
+                            ->where('valid_from', '<=', $today)
+                            ->where(function ($q) use ($today) {
+                                $q->whereNull('valid_until')
+                                  ->orWhere('valid_until', '>=', $today);
+                            });
+                    }),
             ])
             ->recordActions([
                 Action::make('edit')
@@ -57,8 +72,8 @@ class ProductPricesTable
                     ->label(false)
                     ->color('warning')
                     ->url(fn ($record) => ProductPriceResource::getUrl('edit', [
-                    'record' => $record,
-                ])),
+                        'record' => $record,
+                    ])),
                 Action::make('delete')
                     ->icon('heroicon-m-trash')
                     ->button()

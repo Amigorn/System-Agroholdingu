@@ -40,7 +40,7 @@ class TasksTable
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'planned' => 'Zaplanowane',
-                        'in_progress' => 'W trakcie',
+                        'in_progress' => 'W realizacji',
                         'completed' => 'Zakończone',
                         default => $state,
                     })
@@ -58,16 +58,6 @@ class TasksTable
                     ->label('Data zakończenia')
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
-                TextColumn::make('tractor.name')
-                    ->label('Ciągnik')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('machine.name')
-                    ->label('Maszyna towarzysząca')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('description')
                     ->label('Opis')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -87,7 +77,7 @@ class TasksTable
                     ->label('Status zadania')
                     ->options([
                         'planned' => 'Zaplanowane',
-                        'in_progress' => 'W toku',
+                        'in_progress' => 'W realizacji',
                         'completed' => 'Zakończone',
                     ])
                     ->native(false),
@@ -113,10 +103,10 @@ class TasksTable
                         // 2. Aktualizujemy status powiązanych maszyn i ciągników na "w użyciu"
                         foreach ($record->taskMachines as $tm) {
                             if ($tm->tractor_id) {
-                                Machine::where('id', $tm->tractor_id)->update(['status' => 'working']);
+                                Machine::where('id', $tm->tractor_id)->update(['status' => 'in_use']);
                             }
                             if ($tm->machine_id) {
-                                Machine::where('id', $tm->machine_id)->update(['status' => 'working']);
+                                Machine::where('id', $tm->machine_id)->update(['status' => 'in_use']);
                             }
                         }
                         

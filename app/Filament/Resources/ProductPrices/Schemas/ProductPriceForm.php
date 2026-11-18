@@ -34,6 +34,7 @@ class ProductPriceForm
 
                 DatePicker::make('valid_until')
                     ->label('Obowiązuje do')
+                    ->nullable()
                     ->placeholder('Bezterminowo (zostaw puste)'),
             ]);
     }

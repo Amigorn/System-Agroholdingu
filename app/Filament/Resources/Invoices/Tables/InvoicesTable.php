@@ -6,8 +6,11 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
 use App\Filament\Resources\Invoices\InvoiceResource;
-use Filament\Actions\EditAction;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class InvoicesTable
@@ -38,7 +41,8 @@ class InvoicesTable
                         'sale' => 'Sprzedaż (Przychód)',
                         default => $state,
                     })
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('contractor')
                     ->label('Kontrahent')
@@ -64,7 +68,50 @@ class InvoicesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Filtry
+                SelectFilter::make('type')
+                    ->label('Typ dokumentu')
+                    ->options([
+                        'purchase' => 'Zakup',
+                        'sale' => 'Sprzedaż',
+                    ])
+                    ->native(false),
+                Filter::make('amount_range')
+                    ->label('Wartość faktury')
+                    ->form([
+                        TextInput::make('from')
+                            ->label('Kwota od (PLN)')
+                            ->numeric()
+                            ->placeholder('np. 1000'),
+                        TextInput::make('to')
+                            ->label('Kwota do (PLN)')
+                            ->numeric()
+                            ->placeholder('np. 50000'),
+                    ])
+                    ->columns(2)
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $query, $value): Builder => $query->where('total', '>=', $value),
+                            )
+                            ->when(
+                                $data['to'] ?? null,
+                                fn (Builder $query, $value): Builder => $query->where('total', '<=', $value),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['from'] ?? null) {
+                            $indicators[] = 'Kwota od: ' . number_format($data['from'], 2, ',', ' ') . ' PLN';
+                        }
+
+                        if ($data['to'] ?? null) {
+                            $indicators[] = 'Kwota do: ' . number_format($data['to'], 2, ',', ' ') . ' PLN';
+                        }
+
+                        return $indicators;
+                    })
             ])
             ->recordActions([
                 Action::make('edit')

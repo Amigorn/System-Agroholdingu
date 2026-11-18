@@ -43,14 +43,7 @@ class ProductPriceResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        $today = now()->toDateString();
-
-        return parent::getEloquentQuery()
-            ->where('valid_from', '<=', $today)
-            ->where(function ($query) use ($today) {
-                $query->whereNull('valid_until')
-                      ->orWhere('valid_until', '>=', $today);
-            });
+        return parent::getEloquentQuery(); // Zwracamy standardowe zapytanie bez sztywnego filtrowania dat
     }
 
     public static function getRelations(): array

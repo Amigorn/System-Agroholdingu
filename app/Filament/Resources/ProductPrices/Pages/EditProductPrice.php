@@ -10,6 +10,15 @@ class EditProductPrice extends EditRecord
 {
     protected static string $resource = ProductPriceResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (empty($data['valid_until'])) {
+            $data['valid_until'] = null;
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
