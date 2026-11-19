@@ -13,14 +13,15 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'type', 
-        'planned_at', 
-        'completed_at', 
-        'status', 
-        'description', 
-        'user_id', 
-        'field_id'
-        // Brak tractor_id i machine_id – wszystko idzie przez tabelę pośrednią
+        'type',
+        'planned_at',
+        'planned_end_at',
+        'started_at',
+        'completed_at',
+        'status',
+        'description',
+        'user_id',
+        'field_id',
     ];
 
     public function user(): BelongsTo
@@ -39,12 +40,10 @@ class Task extends Model
     }
 
     public function resourceConsumptions(): HasMany
-{
-    return $this->hasMany(ResourceConsumption::class, 'task_id');
-}
-    /**
-     * Wiele maszyn i pojazdów przypisanych do zadania przez tabelę pośrednią machine_task
-     */
+    {
+        return $this->hasMany(ResourceConsumption::class, 'task_id');
+    }
+
     public function machines(): BelongsToMany
     {
         return $this->belongsToMany(Machine::class, 'machine_task')

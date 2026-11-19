@@ -13,9 +13,12 @@ class HarvestForm
     {
         return $schema
             ->components([
-                DatePicker::make('date')
-                    ->label('Data zbioru')
-                    ->required(),
+                Select::make('crop_id')
+                    ->label('Uprawa')
+                    ->relationship('crop', 'name')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
 
                 TextInput::make('quantity')
                     ->label('Ilość')
@@ -29,13 +32,10 @@ class HarvestForm
                     ->searchable()
                     ->preload(),
 
-                Select::make('crop_id')
-                    ->label('Uprawa')
-                    ->relationship('crop', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-
+                DatePicker::make('date')
+                    ->label('Data zbioru')
+                    ->required(),
+                    
                 Select::make('field_id')
                     ->label('Pole uprawne')
                     ->relationship('field', 'name')

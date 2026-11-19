@@ -11,6 +11,10 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\HtmlString;
+use Filament\Widgets\InvoicesChart;
+use App\Filament\Widgets\FullInvoicesChart;
+use App\Filament\Widgets\RevenueChart;
+use App\Filament\Widgets\StatsOverview;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -36,17 +40,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->databaseNotifications()
             ->navigationGroups([
-            'Zarządzanie Gospodarstwem',
-            'Handel i Finanse',
-            'Produkcja Rolna',
-            'Magazyn i Zasoby',
-        ])
+                'Zarządzanie Gospodarstwem',
+                'Handel i Finanse',
+                'Produkcja Rolna',
+                'Magazyn i Zasoby',
+            ])
             ->pages([
                 Dashboard::class,
             ])
             ->widgets([
-                
+                StatsOverview::class,
+                RevenueChart::class,
+                FullInvoicesChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,

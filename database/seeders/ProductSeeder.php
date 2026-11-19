@@ -13,6 +13,7 @@ class ProductSeeder extends Seeder
         $tonne = UnitOfMeasure::where('symbol', 't')->first() ?? UnitOfMeasure::first();
         $litre = UnitOfMeasure::where('symbol', 'l')->orWhere('symbol', 'litr')->first() ?? $tonne;
         $kg = UnitOfMeasure::where('symbol', 'kg')->first() ?? $tonne;
+        //$szt = UnitOfMeasure::where('symbol', 'szt')->first();
 
         // Przemieszana lista zawierająca plony oraz produkty przetworzone od samego początku
         $productsToSeed = [
@@ -32,6 +33,7 @@ class ProductSeeder extends Seeder
             ['name' => 'Żyto ozime', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Owies', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Otręby pszenne', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
+            //['name' => 'Bele słomy', 'unit' => $szt, 'type' => 'plon'],
         ];
 
         foreach ($productsToSeed as $item) {

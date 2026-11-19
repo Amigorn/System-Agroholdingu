@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -23,17 +22,18 @@ class UserFactory extends Factory
      * @return array<string, mixed>
      */
     public function definition(): array
-{
-    return [
-        'first_name' => fake()->firstName(),
-        'last_name' => fake()->lastName(),
-        'email' => fake()->unique()->safeEmail(),
-        'email_verified_at' => now(),
-        'password' => bcrypt('password'), // każde testowe konto będzie miało hasło: password
-        'remember_token' => Str::random(10),
-        'role' => fake()->randomElement(['admin', 'manager', 'worker']),
-    ];
-}
+    {
+        return [
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => bcrypt('password'), // każde testowe konto będzie miało hasło: password
+            'remember_token' => Str::random(10),
+            'role' => fake()->randomElement(['manager', 'worker', 'warehouseman']),
+        ];
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */

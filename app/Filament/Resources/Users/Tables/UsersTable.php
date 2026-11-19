@@ -2,19 +2,18 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\UserResource;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\RestoreAction;
 use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\Action;
-use App\Filament\Resources\Users\UserResource;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use App\Models\User;
 
 class UsersTable
 {
@@ -26,41 +25,43 @@ class UsersTable
                     ->label('Imię')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('last_name')
                     ->label('Nazwisko')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('email')
                     ->label('Adres email')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('role')
                     ->label('Rola')
                     ->badge()
                     ->sortable()
                     ->color(fn (string $state): string => match ($state) {
-                        'admin' => 'danger',   // Czerwony dla Admina
-                        'manager' => 'info',   // Niebieski dla Menadzera
-                        'worker' => 'success', // Zielony dla Pracownika
+                        'admin' => 'danger',
+                        'manager' => 'warning',
+                        'worker' => 'success',
+                        'warehouseman' => 'info',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'admin' => 'Administrator',
-                        'manager' => 'Magazynier',
+                        'manager' => 'Kierownik',
                         'worker' => 'Pracownik',
+                        'warehouseman' => 'Magazynier',
                         default => $state,
                     })
                     ->searchable(),
-                    
+
                 TextColumn::make('created_at')
                     ->label('Utworzono')
                     ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 TextColumn::make('updated_at')
                     ->label('Zaktualizowano')
                     ->dateTime('d.m.Y H:i')
@@ -68,6 +69,16 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('role')
+                    ->label('Rola')
+                    ->options([
+                        'admin' => 'Administrator',
+                        'manager' => 'Kierownik',
+                        'worker' => 'Pracownik',
+                        'warehouseman' => 'Magazynier',
+                    ])
+                    ->native(false),
+
                 TrashedFilter::make()->label('Status usunięcia'),
             ])
             ->recordActions([
@@ -90,7 +101,7 @@ class UsersTable
                     ->modalHeading('Usuń Użytkownika')
                     ->modalDescription('Czy na pewno chcesz przenieść tego użytkownika do kosza?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->visible(fn ($record) => !$record->trashed())
+                    ->visible(fn ($record) => ! $record->trashed())
                     ->action(fn ($record) => $record->delete()),
 
                 // Przywrócenie z kosza gotową akcją Filamenta

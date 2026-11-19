@@ -5,77 +5,71 @@ namespace App\Filament\Widgets;
 use App\Models\Invoice;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class RevenueChart extends ChartWidget
 {
-    protected ?string $heading = 'Przychody ze sprzedaży płodów rolnych i usług (ostatnie 6 miesięcy)';
+    protected ?string $heading = 'Przychody (ostatnie miesiące)';
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 2;
 
     protected function getData(): array
     {
-        $months = collect(range(5, 0))->map(fn (int $i) => now()->subMonths($i));
+        $revenues = Invoice::select(
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+                DB::raw('SUM(total) as aggregate')
+            )
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
 
-        try {
-            if (! class_exists(Invoice::class)) {
-                throw new \RuntimeException('Brak modelu Invoice');
-            }
-
-            $model = new Invoice();
-            $table = $model->getTable();
-            $amountColumn = Schema::hasColumn($table, 'total')
-                ? 'total'
-                : (Schema::hasColumn($table, 'amount') ? 'amount' : null);
-
-            if (! $amountColumn) {
-                throw new \RuntimeException('Brak kolumny kwoty w tabeli faktur');
-            }
-
-            $startDate = now()->subMonths(5)->startOfMonth();
-            $endDate = now()->endOfMonth();
-
-            $rows = Invoice::query()
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, SUM($amountColumn) as total_sum")
-                ->groupBy('ym')
-                ->pluck('total_sum', 'ym');
-
-            $labels = $months->map(fn (Carbon $date) => $date->translatedFormat('M Y'))->toArray();
-            $values = $months->map(fn (Carbon $date) => (float) ($rows[$date->format('Y-m')] ?? 0))->toArray();
-
+        if ($revenues->isEmpty()) {
             return [
                 'datasets' => [
                     [
-                        'label' => 'Przychód (PLN)',
-                        'data' => $values,
-                        'backgroundColor' => 'rgba(16, 185, 129, 0.2)',
-                        'borderColor' => '#059669',
-                        'borderWidth' => 2,
+                        'label' => 'Przychód',
+                        'data' => [12000, 14800, 13200, 16100, 15300, 17900, 19200, 21400, 18900, 22100, 24800, 26200],
+                        'borderColor' => '#eab308',
+                        'pointBackgroundColor' => '#facc15',
+                        'backgroundColor' => 'rgba(234, 179, 8, 0.12)',
                         'fill' => true,
+                        'tension' => 0.15,
                     ],
                 ],
-                'labels' => $labels,
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'datasets' => [
-                    [
-                        'label' => 'Przychód (PLN - Symulacja)',
-                        'data' => [45000, 59000, 80000, 125000, 160000, 210000],
-                        'backgroundColor' => 'rgba(16, 185, 129, 0.2)',
-                        'borderColor' => '#059669',
-                        'borderWidth' => 2,
-                        'fill' => true,
-                    ],
-                ],
-                'labels' => $months->map(fn (Carbon $date) => $date->translatedFormat('M Y'))->toArray(),
+                'labels' => ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'],
             ];
         }
+
+        return [
+            'datasets' => [
+                [
+                    'label' => 'Przychód (PLN)',
+                    'data' => $revenues->pluck('aggregate')->toArray(),
+                    'borderColor' => '#eab308',
+                    'pointBackgroundColor' => '#facc15',
+                    'backgroundColor' => 'rgba(234, 179, 8, 0.12)',
+                    'fill' => true,
+                    'tension' => 0.15,
+                ],
+            ],
+            'labels' => $revenues->map(
+                fn ($row) => Carbon::createFromFormat('Y-m', $row->month)->translatedFormat('M Y')
+            )->toArray(),
+        ];
     }
 
     protected function getType(): string
     {
         return 'line';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => ['display' => false],
+            ],
+        ];
     }
 }

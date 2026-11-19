@@ -23,6 +23,7 @@ class UnitOfMeasureFactory extends Factory
                 'Kilogram' => 'kg',
                 'Litr' => 'l',
                 'Tona' => 't',
+                'Sztuki' => 'szt',
             },
         ];
     }

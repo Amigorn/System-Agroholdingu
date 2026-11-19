@@ -5,10 +5,12 @@ namespace App\Filament\Resources\Fields\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
+use App\Models\Field;
 use App\Filament\Resources\Fields\FieldResource;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
 
 class FieldsTable
 {
@@ -24,7 +26,8 @@ class FieldsTable
                 ->suffix(' ha')
                 ->sortable(),
             TextColumn::make('soil_type')
-                ->label('Typ gleby'),
+                ->label('Typ gleby')
+                ->sortable(),
             TextColumn::make('location')
                 ->label('Lokalizacja')
                 ->toggleable(isToggledHiddenByDefault: true),
@@ -41,7 +44,10 @@ class FieldsTable
                 ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                 SelectFilter::make('soil_type')
+                    ->label('Typ Gleby')
+                    ->options(fn () => Field::distinct()->pluck('soil_type', 'soil_type')->toArray())
+                    ->native(false),
             ])
             ->recordActions([
                 Action::make('edit')
