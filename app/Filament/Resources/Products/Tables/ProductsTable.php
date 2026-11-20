@@ -2,11 +2,10 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Filament\Resources\Products\ProductResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\Action;
-use App\Filament\Resources\Products\ProductResource;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -26,12 +25,13 @@ class ProductsTable
                     ->label('Typ')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'crop' => 'success',
+                        'plon' => 'success',
+                        'produkt_przetworzony' => 'info',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'crop' => 'Plon / Zbiór',
-                        'other' => 'Inne',
+                        'plon' => 'Plon / Zbiór',
+                        'produkt_przetworzony' => 'Produkt przetworzony',
                         default => $state,
                     })
                     ->sortable(),
@@ -46,13 +46,18 @@ class ProductsTable
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->label('Zaktualizowano')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')
                     ->label('Filtruj po typie')
                     ->options([
-                        'crop' => 'Plon / Zbiór',
-                        'other' => 'Inne',
+                        'plon' => 'Plon / Zbiór',
+                        'produkt_przetworzony' => 'Produkt przetworzony',
                     ]),
             ])
             ->recordActions([
@@ -62,16 +67,17 @@ class ProductsTable
                     ->label(false)
                     ->color('warning')
                     ->url(fn ($record) => ProductResource::getUrl('edit', [
-                    'record' => $record,
-                ])),
+                        'record' => $record,
+                    ])),
+
                 Action::make('delete')
                     ->icon('heroicon-m-trash')
                     ->button()
                     ->label(false)
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Usuń Produkt')
-                    ->modalDescription('Czy na pewno chcesz to zrobić?')
+                    ->modalHeading('Usuń produkt')
+                    ->modalDescription('Czy na pewno chcesz usunąć ten produkt?')
                     ->modalSubmitActionLabel('Tak, usuń')
                     ->action(fn ($record) => $record->delete()),
             ])

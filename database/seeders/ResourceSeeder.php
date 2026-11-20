@@ -17,6 +17,7 @@ class ResourceSeeder extends Seeder
 
         // Lista unikalnych zasobów w gospodarstwie wraz z ich typem i domyślną jednostką
         $resources = [
+            ['name' => 'Olej napędowy ON', 'type' => 'paliwo', 'unit_id' => $l?->id],
             ['name' => 'Saletra Amonowa', 'type' => 'nawóz', 'unit_id' => $kg?->id],
             ['name' => 'YaraMila', 'type' => 'nawóz', 'unit_id' => $kg?->id],
             ['name' => 'Roundup 360', 'type' => 'środki ochrony roślin', 'unit_id' => $l?->id],
@@ -26,16 +27,15 @@ class ResourceSeeder extends Seeder
             ['name' => 'Rzepak LG Ambassador', 'type' => 'materiał siewny', 'unit_id' => $kg?->id],
             ['name' => 'Kukurydza LG 31.245', 'type' => 'materiał siewny', 'unit_id' => $kg?->id],
             ['name' => 'Turbulant 3000', 'type' => 'środki ochrony roślin', 'unit_id' => $l?->id],
-            ['name' => 'AdBlue', 'type' => 'płyny eksploacyjne', 'unit_id' => $l?->id],
+            ['name' => 'AdBlue', 'type' => 'płyny eksploatacyjne', 'unit_id' => $l?->id],
         ];
 
         foreach ($resources as $resourceData) {
-            // updateOrCreate zabezpiecza przed tworzeniem duplikatów przy wielokrotnym odpalaniu seedera
             Resource::updateOrCreate(
-                ['name' => $resourceData['name']], // Kryterium wyszukiwania
+                ['name' => $resourceData['name']],
                 [
                     'type' => $resourceData['type'],
-                    'unit_id' => $resourceData['unit_id'] ?? $szt?->id, // Fallback na sztuki, gdyby brakowało jednostki
+                    'unit_id' => $resourceData['unit_id'] ?? $szt?->id,
                 ]
             );
         }

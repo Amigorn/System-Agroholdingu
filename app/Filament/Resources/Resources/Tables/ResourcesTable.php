@@ -5,9 +5,11 @@ namespace App\Filament\Resources\Resources\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use App\Filament\Resources\Resources\ResourceResource;
+use App\Models\Resource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class ResourcesTable
@@ -36,9 +38,18 @@ class ResourcesTable
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                    
+                TextColumn::make('updated_at')
+                    ->label('Zaktualizowano')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('type')
+                    ->label('Typ zasobu')
+                    ->options(fn () => Resource::distinct()->pluck('type', 'type')->toArray())
+                    ->native(false),
             ])
             ->recordActions([
                 Action::make('edit')

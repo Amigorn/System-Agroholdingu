@@ -81,7 +81,6 @@ class ResourceConsumptionsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('resource.name')
                     ->label('Surowiec')
-                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('quantity')
@@ -102,7 +101,10 @@ class ResourceConsumptionsRelationManager extends RelationManager
                     ->createAnother(false), // Wyłącza przycisk "Utwórz i utwórz kolejny", zostawiając tylko "Dodaj" i "Anuluj"
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Edytuj')
+                    ->modalHeading('Edytuj surowiec')
+                    ->modalSubmitActionLabel('Zapisz'),
                 DeleteAction::make(),
             ]);
     }

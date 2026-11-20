@@ -65,11 +65,42 @@ class TaskSeeder extends Seeder
             $taskStart = Carbon::parse($task->planned_at);
             $taskEnd = $task->planned_end_at
                 ? Carbon::parse($task->planned_end_at)
-                : ($task->completed_at ? Carbon::parse($task->completed_at) : $taskStart->copy()->addHours(4));
+                : $taskStart->copy()->addHours(4);
 
             if ($taskEnd->lte($taskStart)) {
                 $taskEnd = $taskStart->copy()->addHours(2);
             }
+
+            // Uporządkowanie dat started_at i completed_at względem przedziału [planned_at, planned_end_at]
+            $taskUpdates = [
+                'planned_at' => $taskStart,
+                'planned_end_at' => $taskEnd,
+            ];
+
+            if ($task->status === 'completed') {
+                $startTimestamp = rand($taskStart->timestamp, $taskEnd->timestamp);
+                $startedAt = Carbon::createFromTimestamp($startTimestamp);
+                $completedAt = Carbon::createFromTimestamp(
+                    rand($startedAt->timestamp, $taskEnd->timestamp)
+                );
+
+                $taskUpdates['started_at'] = $startedAt;
+                $taskUpdates['completed_at'] = $completedAt;
+            } elseif ($task->status === 'in_progress') {
+                $upperBound = $taskEnd->lt(now()) ? $taskEnd : now();
+                if ($upperBound->lt($taskStart)) {
+                    $upperBound = $taskStart->copy();
+                }
+
+                $startTimestamp = rand($taskStart->timestamp, $upperBound->timestamp);
+                $taskUpdates['started_at'] = Carbon::createFromTimestamp($startTimestamp);
+                $taskUpdates['completed_at'] = null;
+            } else {
+                $taskUpdates['started_at'] = null;
+                $taskUpdates['completed_at'] = null;
+            }
+
+            $task->update($taskUpdates);
 
             $isInProgress = $task->status === 'in_progress';
             $setsCount = rand(1, 2);
@@ -88,10 +119,12 @@ class TaskSeeder extends Seeder
                 $isHarvester = $unit->type === 'Kombajn';
 
                 $machine = null;
-                if (! $isHarvester) {
+                if (! $isHarvester && $machines->isNotEmpty()) {
                     $freeMachines = $machines->filter(
                         fn ($m) => $isFree('machine', (int) $m->id, $taskStart, $taskEnd)
                     );
+
+                    // Preferujemy wolną maszynę towarzyszącą w danym oknie czasowym
                     $machine = $freeMachines->isNotEmpty() ? $freeMachines->random() : null;
                 }
 

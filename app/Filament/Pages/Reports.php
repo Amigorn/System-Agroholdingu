@@ -46,31 +46,7 @@ class Reports extends Page
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('downloadPdf')
-                ->label('Pobierz raport PDF')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('success')
-                ->visible(fn () => class_exists(Pdf::class) && view()->exists('pdf.holding-report'))
-                ->action(function () {
-                    $pdf = Pdf::loadView('pdf.holding-report', [
-                        'generatedAt' => now()->format('d.m.Y H:i'),
-                        'fieldsCount' => class_exists(Field::class) ? Field::count() : 0,
-                        'cropsCount' => class_exists(Crop::class) ? Crop::count() : 0,
-                        'machinesCount' => class_exists(Machine::class) ? Machine::count() : 0,
-                        'totalTasks' => class_exists(Task::class) ? Task::count() : 0,
-                        'completedTasks' => class_exists(Task::class) ? Task::where('status', 'completed')->count() : 0,
-                        'cropsBreakdown' => class_exists(Crop::class)
-                            ? Crop::select('name', DB::raw('count(*) as total'))->groupBy('name')->get()
-                            : collect(),
-                        'recentInvoices' => collect(),
-                        'totalRevenue' => 0,
-                    ]);
-
-                    return response()->streamDownload(
-                        fn () => print($pdf->output()),
-                        'raport-operacyjny-' . now()->format('Y-m-d') . '.pdf'
-                    );
-                }),
+            //
         ];
     }
 
@@ -133,11 +109,11 @@ class Reports extends Page
         return 0.0;
     }
 
-   protected function extractTaskHours(object $task): float
+    protected function extractTaskHours(object $task): float
     {
         $total = 0.0;
 
-        // 1. Sprawdź powiązane zużycia zasobów (np. resourceConsumptions), jeśli mają kolumny godzin/mth
+        // 1. Jeśli zużycia zasobów przechowują bezpośrednio godziny / mth, użyj ich w pierwszej kolejności
         if ($task->relationLoaded('resourceConsumptions') && $task->resourceConsumptions instanceof Collection) {
             foreach ($task->resourceConsumptions as $rc) {
                 foreach (['hours', 'engine_hours', 'mth', 'moto_hours', 'work_hours'] as $col) {
@@ -153,26 +129,33 @@ class Reports extends Page
             return round($total, 2);
         }
 
-        // 2. Fallback: jeśli zadanie ma planned_at oraz completed_at (lub updated_at dla ukończonych), policz godziny pracy
-        if (! empty($task->planned_at)) {
-            $end = ! empty($task->completed_at)
-                ? Carbon::parse($task->completed_at)
-                : ($this->isCompletedTask($task) && ! empty($task->updated_at) ? Carbon::parse($task->updated_at) : null);
+        // 2. Realny czas pracy: started_at -> completed_at
+        if (! empty($task->started_at) && ! empty($task->completed_at)) {
+            $start = Carbon::parse($task->started_at);
+            $end = Carbon::parse($task->completed_at);
 
-            if ($end !== null) {
-                $start = Carbon::parse($task->planned_at);
+            if ($end->greaterThan($start)) {
+                return round($start->diffInMinutes($end) / 60, 1);
+            }
+        }
+
+        // 3. Fallback dla ukończonych zadań: planned_at -> completed_at / planned_end_at
+        if ($this->isCompletedTask($task)) {
+            $startRaw = $task->started_at ?? $task->planned_at;
+            $endRaw = $task->completed_at ?? $task->planned_end_at;
+
+            if (! empty($startRaw) && ! empty($endRaw)) {
+                $start = Carbon::parse($startRaw);
+                $end = Carbon::parse($endRaw);
+
                 if ($end->greaterThan($start)) {
-                    $diffHours = round($start->diffInMinutes($end) / 60, 1);
-                    if ($diffHours > 0) {
-                        return $diffHours;
-                    }
+                    return round($start->diffInMinutes($end) / 60, 1);
                 }
             }
         }
 
         return 0.0;
     }
-
     protected function resolveEmployeeNames(Collection $tasks): array
     {
         $map = [];
@@ -754,64 +737,110 @@ protected function getFieldWorkReport(): array
     protected function getFuelAndOperatingCostsReport(): array
     {
         $fuelLiters = 0;
-        $operatingCost = 0;
         $rows = [];
 
-        foreach (['fuel_logs', 'fuelings', 'refuelings', 'operating_costs', 'maintenance_logs'] as $table) {
-            if (Schema::hasTable($table)) {
-                $count = DB::table($table)->count();
+        if (
+            Schema::hasTable('resource_consumptions')
+            && Schema::hasTable('resources')
+            && Schema::hasColumn('resource_consumptions', 'resource_id')
+            && Schema::hasColumn('resource_consumptions', 'quantity')
+            && Schema::hasColumn('resources', 'type')
+        ) {
+            // Łączne zużycie paliwa
+            $fuelLiters = (float) DB::table('resource_consumptions')
+                ->join(
+                    'resources',
+                    'resources.id',
+                    '=',
+                    'resource_consumptions.resource_id'
+                )
+                ->where('resources.type', 'paliwo')
+                ->sum('resource_consumptions.quantity');
+
+            $rows[] = [
+                'title' => 'Paliwo',
+                'meta' => 'Łączne zużycie paliwa',
+                'value' => number_format($fuelLiters, 1, ',', ' ') . ' l',
+            ];
+
+            // Pozostałe zasoby, pogrupowane według nazwy
+            $otherResources = DB::table('resource_consumptions')
+                ->join(
+                    'resources',
+                    'resources.id',
+                    '=',
+                    'resource_consumptions.resource_id'
+                )
+                ->where(function ($query) {
+                    $query->whereNull('resources.type')
+                        ->orWhere('resources.type', '!=', 'paliwo');
+                })
+                ->select(
+                    'resources.id as resource_id',
+                    'resources.name',
+                    'resources.type',
+                    DB::raw('SUM(resource_consumptions.quantity) as total_quantity')
+                )
+                ->groupBy(
+                    'resources.id',
+                    'resources.name',
+                    'resources.type'
+                )
+                ->orderBy('resources.name')
+                ->get();
+
+            foreach ($otherResources as $item) {
+                $resource = \App\Models\Resource::with('unit')
+                    ->find($item->resource_id);
+
+                $unit = $resource?->unit?->symbol ?? '';
+
                 $rows[] = [
-                    'title' => 'Ewidencja: ' . str_replace('_', ' ', $table),
-                    'meta' => 'Zarejestrowane wpisy',
-                    'value' => $count . ' szt.',
+                    'title' => $item->name,
+                    'meta' => $item->type ?: 'Inny zasób',
+                    'value' => number_format(
+                        (float) $item->total_quantity,
+                        2,
+                        ',',
+                        ' '
+                    ) . ($unit !== '' ? ' ' . $unit : ''),
                 ];
-
-                if (Schema::hasColumn($table, 'liters')) {
-                    $fuelLiters += (float) DB::table($table)->sum('liters');
-                } elseif (Schema::hasColumn($table, 'quantity')) {
-                    $fuelLiters += (float) DB::table($table)->sum('quantity');
-                }
-
-                if (Schema::hasColumn($table, 'cost')) {
-                    $operatingCost += (float) DB::table($table)->sum('cost');
-                } elseif (Schema::hasColumn($table, 'amount')) {
-                    $operatingCost += (float) DB::table($table)->sum('amount');
-                }
             }
         }
 
         return [
             'title' => 'Raporty dotyczące paliwa i kosztów eksploatacji',
-            'subtitle' => 'Zużycie paliwa, koszty serwisowe oraz bieżące wydatki eksploatacyjne holdingu.',
+            'subtitle' => 'Zużycie paliwa oraz pozostałych zasobów gospodarstwa.',
             'metrics' => [
-                ['label' => 'Zużyte paliwo', 'value' => number_format($fuelLiters, 1, ',', ' ') . ' l'],
-                ['label' => 'Koszty eksploatacji', 'value' => number_format($operatingCost, 2, ',', ' ') . ' zł'],
-                ['label' => 'Śr. koszt / 100 l', 'value' => $fuelLiters > 0 ? number_format(($operatingCost / $fuelLiters) * 100, 2, ',', ' ') . ' zł' : '0,00 zł'],
-                ['label' => 'Źródła danych', 'value' => count($rows)],
+                [
+                    'label' => 'Zużyte paliwo',
+                    'value' => number_format($fuelLiters, 1, ',', ' ') . ' l',
+                ],
+                [
+                    'label' => 'Liczba innych zasobów',
+                    'value' => (count($rows) > 0 ? count($rows) - 1 : 0) . ' szt.',
+                ],
             ],
-            'columns' => ['Źródło / Kategoria', 'Zakres', 'Wartość'],
+            'columns' => ['Źródło / Kategoria', 'Rodzaj zasobu', 'Zużyta ilość'],
             'rows' => $rows,
         ];
     }
-
-    protected function getMachinesReport(): array
+   protected function getMachinesReport(): array
     {
         $total = class_exists(Machine::class) ? Machine::count() : 0;
         $active = 0;
-        $rows = [];
 
         if (class_exists(Machine::class)) {
             if (Schema::hasColumn('machines', 'status')) {
-                $active = Machine::whereIn('status', ['active', 'available', 'operational', 'sprawna'])->count();
+                $active = Machine::whereIn('status', [
+                    'active',
+                    'available',
+                    'operational',
+                    'sprawna',
+                ])->count();
             } else {
                 $active = $total;
             }
-
-            $rows = Machine::latest()->limit(5)->get()->map(fn ($machine) => [
-                'title' => $machine->name ?? $machine->model ?? ('Maszyna #' . $machine->id),
-                'meta' => $machine->registration_number ?? $machine->plate_number ?? ($machine->status ?? 'Flota'),
-                'value' => $machine->status ?? 'Aktywna',
-            ])->all();
         }
 
         return [
@@ -821,40 +850,31 @@ protected function getFieldWorkReport(): array
                 ['label' => 'Łącznie jednostek', 'value' => $total],
                 ['label' => 'Gotowe do pracy', 'value' => $active],
                 ['label' => 'Wyłączone / serwis', 'value' => max(0, $total - $active)],
-                ['label' => 'Dostępność floty', 'value' => $total > 0 ? round(($active / $total) * 100, 1) . '%' : '0%'],
+                [
+                    'label' => 'Dostępność floty',
+                    'value' => $total > 0
+                        ? round(($active / $total) * 100, 1) . '%'
+                        : '0%',
+                ],
             ],
-            'columns' => ['Maszyna / Pojazd', 'Nr / Kod', 'Status'],
-            'rows' => $rows,
+            'columns' => [],
+            'rows' => [],
         ];
     }
 
-    protected function getEmployeesReport(): array
+   protected function getEmployeesReport(): array
     {
         $employeesCount = 0;
-        $rows = [];
 
         foreach (['employees', 'workers', 'staff'] as $table) {
             if (Schema::hasTable($table)) {
                 $employeesCount = DB::table($table)->count();
-                $rows = DB::table($table)->latest('id')->limit(5)->get()->map(function ($emp) {
-                    $name = trim(($emp->first_name ?? '') . ' ' . ($emp->last_name ?? ''));
-                    return [
-                        'title' => $name !== '' ? $name : ($emp->name ?? ('Pracownik #' . $emp->id)),
-                        'meta' => $emp->position ?? $emp->role ?? 'Kadra operacyjna',
-                        'value' => $emp->department ?? 'Gospodarstwo',
-                    ];
-                })->all();
                 break;
             }
         }
 
         if ($employeesCount === 0 && Schema::hasTable('users')) {
             $employeesCount = DB::table('users')->count();
-            $rows = DB::table('users')->latest('id')->limit(5)->get()->map(fn ($user) => [
-                'title' => $user->name ?? ('Użytkownik #' . $user->id),
-                'meta' => $user->email ?? 'Konto systemowe',
-                'value' => 'Aktywne',
-            ])->all();
         }
 
         return [
@@ -863,11 +883,16 @@ protected function getFieldWorkReport(): array
             'metrics' => [
                 ['label' => 'Liczba osób', 'value' => $employeesCount],
                 ['label' => 'Aktywna kadra', 'value' => $employeesCount],
-                ['label' => 'Zadania / osoba', 'value' => $employeesCount > 0 && class_exists(Task::class) ? round(Task::count() / $employeesCount, 1) : 0],
+                [
+                    'label' => 'Zadania / osoba',
+                    'value' => $employeesCount > 0 && class_exists(Task::class)
+                        ? round(Task::count() / $employeesCount, 1)
+                        : 0,
+                ],
                 ['label' => 'Obsada', 'value' => $employeesCount > 0 ? '100%' : '0%'],
             ],
-            'columns' => ['Pracownik', 'Stanowisko / Kontakt', 'Dział / Status'],
-            'rows' => $rows,
+            'columns' => [],
+            'rows' => [],
         ];
     }
 

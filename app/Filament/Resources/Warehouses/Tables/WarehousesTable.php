@@ -31,6 +31,12 @@ class WarehousesTable
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                    
+                TextColumn::make('updated_at')
+                    ->label('Zaktualizowano')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

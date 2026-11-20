@@ -21,7 +21,7 @@ class TaskMachinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'taskMachines';
 
-    protected static ?string $title = 'Zestawy robocze (Ciągnik + Maszyna + Operator)';
+    protected static ?string $title = 'Zestawy robocze';
 
     /**
      * Zwraca ID innych (nieukończonych) zadań, których przedział czasowy
@@ -256,7 +256,10 @@ class TaskMachinesRelationManager extends RelationManager
                     ->modalHeading('Dodaj nowy zestaw roboczy'),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Edytuj')
+                    ->modalHeading('Edytuj zestaw')
+                    ->modalSubmitActionLabel('Zapisz'),
                 DeleteAction::make(),
             ]);
     }

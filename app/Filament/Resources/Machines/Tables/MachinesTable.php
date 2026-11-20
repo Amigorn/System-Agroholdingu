@@ -63,7 +63,6 @@ class MachinesTable
 
                 SelectFilter::make('type')
                     ->label('Typ maszyny')
-                    // Dynamiczne pobranie unikalnych typów bezpośrednio z bazy danych
                     ->options(fn () => Machine::distinct()->pluck('type', 'type')->toArray())
                     ->native(false),
             ])

@@ -18,6 +18,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema as DbSchema;
 
 class TasksTable
 {
@@ -57,26 +58,26 @@ class TasksTable
                     }),
 
                 TextColumn::make('planned_at')
-                    ->label('Data planowana')
-                    ->dateTime('Y-m-d H:i')
+                    ->label('Planowane rozpoczęcie')
+                    ->dateTime('d-m-Y H:i')
                     ->sortable(),
 
                 TextColumn::make('planned_end_at')
                     ->label('Planowane zakończenie')
-                    ->dateTime('Y-m-d H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->dateTime('d-m-Y H:i')
+                    ->sortable(),
 
                 TextColumn::make('started_at')
-                    ->label('Rozpoczęto')
-                    ->dateTime('Y-m-d H:i')
+                    ->label('Data rozpoczęcia')
+                    ->dateTime('d-m-Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('completed_at')
                     ->label('Data zakończenia')
-                    ->dateTime('Y-m-d H:i')
-                    ->sortable(),
+                    ->dateTime('d-m-Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('description')
                     ->label('Opis')
@@ -150,7 +151,7 @@ class TasksTable
                             ->label('Zużyte paliwo (litry)')
                             ->numeric()
                             ->step('0.01')
-                            ->placeholder('Wpisz ilość zużytego paliwa (ON / Pb) w litrach')
+                            ->placeholder('Wpisz ilość zużytego paliwa ON')
                             ->rules(['required', 'numeric', 'min:0.01'])
                             ->validationMessages([
                                 'required' => 'Pole zużyte paliwo jest wymagane.',
@@ -165,7 +166,22 @@ class TasksTable
                             ->schema([
                                 Select::make('resource_id')
                                     ->label('Surowiec')
-                                    ->options(Resource::query()->pluck('name', 'id'))
+                                    ->options(function () {
+                                        return Resource::query()
+                                            ->whereNot(function (Builder $q) {
+                                                $q->whereRaw('LOWER(name) LIKE ?', ['%paliwo%'])
+                                                    ->orWhereRaw('LOWER(name) LIKE ?', ['%olej napędowy%'])
+                                                    ->orWhereRaw('LOWER(name) LIKE ?', ['%diesel%'])
+                                                    ->orWhere('name', 'LIKE', '% ON')
+                                                    ->orWhere('name', '=', 'ON');
+
+                                                if (DbSchema::hasColumn('resources', 'type')) {
+                                                    $q->orWhereRaw('LOWER(type) = ?', ['paliwo']);
+                                                }
+                                            })
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id');
+                                    })
                                     ->required()
                                     ->searchable()
                                     ->preload()

@@ -41,16 +41,21 @@ class TaskForm
                 ->required(),
 
             DateTimePicker::make('planned_at')
-                ->label('Data planowana')
+                ->label('Planowane rozpoczęcie')
+                ->seconds(false)
                 ->required(),
 
             DateTimePicker::make('planned_end_at')
-                ->label('Planowane zakończenie'),
+                ->seconds(false)
+                ->label('Planowane zakończenie')
+                ->required(),
 
             DateTimePicker::make('started_at')
+                ->seconds(false)
                 ->label('Data rozpoczęcia'),
 
             DateTimePicker::make('completed_at')
+                ->seconds(false)
                 ->label('Data zakończenia'),
 
             Textarea::make('description')

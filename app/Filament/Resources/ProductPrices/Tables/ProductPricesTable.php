@@ -21,31 +21,28 @@ class ProductPricesTable
                     ->label('Produkt')
                     ->searchable()
                     ->sortable(),
-
                 TextColumn::make('price')
                     ->label('Cena')
                     ->alignRight()
                     ->money('PLN')
                     ->sortable(),
-
                 TextColumn::make('valid_from')
                     ->label('Obowiązuje od')
                     ->date('d.m.Y')
                     ->sortable(),
-
                 TextColumn::make('valid_until')
                     ->label('Obowiązuje do')
                     ->date('d.m.Y')
                     ->placeholder('Bezterminowo')
                     ->sortable(),
-
                 TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Utworzono')
+                    ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Zaktualizowano')
+                    ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

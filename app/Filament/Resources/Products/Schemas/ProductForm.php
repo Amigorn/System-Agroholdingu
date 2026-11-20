@@ -21,8 +21,8 @@ class ProductForm
                 Select::make('type')
                     ->label('Typ produktu')
                     ->options([
-                        'crop' => 'Plon / Zbiór',
-                        'other' => 'Inne',
+                        'plon' => 'Plon / Zbiór',
+                        'produkt_przetworzony' => 'Produkt przetworzony',
                     ])
                     ->required()
                     ->native(false),
