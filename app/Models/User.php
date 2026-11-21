@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Filament\Models\Contracts\HasName; // <-- Dodaj tę linię
+use Filament\Models\Contracts\HasName;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class User extends Authenticatable implements HasName // <-- Dodaj "implements HasName"
+class User extends Authenticatable implements HasName
 {
     use HasFactory, Notifiable, SoftDeletes;
 

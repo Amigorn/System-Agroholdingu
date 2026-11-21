@@ -129,7 +129,9 @@ class TasksRelationManager extends RelationManager
                 //
             ])
             ->recordActions([
-                ViewAction::make()->label('Szczegóły'),
+                ViewAction::make()
+                    ->label('Szczegóły')
+                    ->modalHeading('Podgląd szczegółowy'),
             ]);
     }
 }

@@ -23,7 +23,7 @@ class ProductPriceResource extends Resource
     protected static string | UnitEnum | null $navigationGroup = 'Handel i Finanse';
     protected static ?string $navigationLabel = 'Cennik produktów';
     protected static ?string $pluralModelLabel = 'Cennik produktów';
-    protected static ?string $modelLabel = 'Cena';
+    protected static ?string $modelLabel = 'Cene produktu';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
 

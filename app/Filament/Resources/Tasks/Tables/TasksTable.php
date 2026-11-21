@@ -116,6 +116,17 @@ class TasksTable
                     ->modalHeading('Rozpoczęcie zadania')
                     ->modalDescription('Czy na pewno chcesz zmienić status tego zadania na "W realizacji"?')
                     ->modalSubmitActionLabel('Tak, rozpocznij')
+                    ->before(function ($record, Action $action) {
+                        if ($record->taskMachines()->doesntExist()) {
+                            Notification::make()
+                                ->title('Brak zestawu roboczego')
+                                ->body('Nie można rozpocząć zadania bez przypisanego zestawu roboczego.')
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
                     ->action(function ($record) {
                         $record->update([
                             'status' => 'in_progress',

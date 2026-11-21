@@ -22,13 +22,13 @@ class StatsOverview extends BaseWidget
 
         return [
             Stat::make('Przychód ze sprzedaży', number_format($revenue, 2, ',', ' ') . ' zł')
-                ->description('Faktury sprzedażowe (sale)')
+                ->description('Faktury sprzedażowe')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('success')
                 ->chart([12, 15, 13, 16, 18, 21, 26]),
 
             Stat::make('Ponoszone koszty', number_format($costs, 2, ',', ' ') . ' zł')
-                ->description('Faktury zakupowe (purchase)')
+                ->description('Faktury zakupowe')
                 ->descriptionIcon('heroicon-m-arrow-trending-down')
                 ->color('warning')
                 ->chart([6, 8, 7, 9, 8, 11, 10]),

@@ -18,23 +18,22 @@ class CropForm
                     ->required()
                     ->maxLength(255),
 
-                Textarea::make('opis')
-                    ->label('Opis')
-                    ->columnSpanFull(),
+                Select::make('sezon_uprawowy_id')
+                    ->label('Sezon uprawowy')
+                    ->relationship('season', 'name')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
 
                 Select::make('pole_id')
                     ->label('Pole uprawne')
-                    ->relationship('field', 'name') // Zakłada relację 'field' w modelu Crop
+                    ->relationship('field', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
 
-                Select::make('sezon_uprawowy_id')
-                    ->label('Sezon uprawowy')
-                    ->relationship('season', 'name') // Zakłada relację 'season' w modelu Crop (zmień 'season' na nazwę swojej relacji, np. 'cropSeason', oraz 'name' na kolumnę wyświetlaną np. 'year')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
+                Textarea::make('opis')
+                    ->label('Opis'),
             ]);
     }
 }

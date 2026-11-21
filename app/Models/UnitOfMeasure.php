@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UnitOfMeasure extends Model
 {
-    /** @use HasFactory<\Database\Factories\UnitOfMeasureFactory> */
     use HasFactory;
 
     protected $fillable = ['nazwa', 'skrot'];

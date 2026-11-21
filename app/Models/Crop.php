@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Crop extends Model
 {
-    /** @use HasFactory<\Database\Factories\CropFactory> */
     use HasFactory;
 
     protected $fillable = ['name', 'description', 'field_id', 'season_id'];

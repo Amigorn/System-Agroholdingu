@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Field extends Model
 {
-    use HasFactory; // <-- To musi być dokładnie tutaj, wewnątrz klamer klasy!
+    use HasFactory;
 
     protected $fillable = ['name', 'area', 'soil_type', 'location', 'description'];
 

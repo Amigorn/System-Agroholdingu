@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ResourceConsumption extends Model
 {
-    /** @use HasFactory<\Database\Factories\ResourceConsumptionFactory> */
     use HasFactory;
 
     protected $fillable = [

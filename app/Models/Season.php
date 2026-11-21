@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Season extends Model
 {
-    /** @use HasFactory<\Database\Factories\SeasonFactory> */
     use HasFactory;
 
-    protected $fillable = ['year', 'name']; // Dostosuj do kolumn w swojej tabeli w bazie
+    protected $fillable = ['year', 'name'];
 }

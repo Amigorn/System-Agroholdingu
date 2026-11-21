@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Harvest extends Model
 {
-    /** @use HasFactory<\Database\Factories\HarvestFactory> */
     use HasFactory;
 
     protected $fillable = [

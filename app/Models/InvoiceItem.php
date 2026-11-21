@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvoiceItem extends Model
 {
-    /** @use HasFactory<\Database\Factories\InvoiceItemFactory> */
     use HasFactory;
 
     protected $fillable = [

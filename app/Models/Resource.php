@@ -12,7 +12,6 @@ class Resource extends Model
 
     protected $table = 'resources';
     
-    // Dodajemy 'type' do $fillable
     protected $fillable = [
         'name',
         'type',
