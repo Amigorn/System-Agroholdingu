@@ -16,30 +16,28 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         $products = [
-            ['name' => 'Pszenica ozima', 'unit' => 't', 'type' => 'plon'],
-            ['name' => 'Olej rzepakowy', 'unit' => 'l', 'type' => 'produkt_przetworzony'],
-            ['name' => 'Rzepak ozimy', 'unit' => 't', 'type' => 'plon'],
+            ['name' => 'Pszenica jara', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Mąka pszenna', 'unit' => 't', 'type' => 'produkt_przetworzony'],
             ['name' => 'Kukurydza na ziarno', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Olej słonecznikowy', 'unit' => 'l', 'type' => 'produkt_przetworzony'],
             ['name' => 'Jęczmień jary', 'unit' => 't', 'type' => 'plon'],
-            ['name' => 'Śruta rzepakowa', 'unit' => 't', 'type' => 'produkt_przetworzony'],
             ['name' => 'Burak cukrowy', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Słonecznik', 'unit' => 't', 'type' => 'plon'],
-            ['name' => 'Mąka żytnia', 'unit' => 't', 'type' => 'produkt_przetworzony'],
             ['name' => 'Groch siewny', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Soja', 'unit' => 't', 'type' => 'plon'],
-            ['name' => 'Żyto ozime', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Owies', 'unit' => 't', 'type' => 'plon'],
             ['name' => 'Otręby pszenne', 'unit' => 't', 'type' => 'produkt_przetworzony'],
+            ['name' => 'Łubin żółty', 'unit' => 't', 'type' => 'plon'],
+            ['name' => 'Rzepik jary', 'unit' => 't', 'type' => 'plon'],
+            ['name' => 'Olej rzepikowy', 'unit' => 'l', 'type' => 'produkt_przetworzony'],
+            ['name' => 'Płatki owsiane', 'unit' => 't', 'type' => 'produkt_przetworzony'],
         ];
 
         $product = fake()->randomElement($products);
 
         $unit = UnitOfMeasure::where('symbol', $product['unit'])->first();
 
-        // Jeśli nie ma litra, użyj tony lub innej dostępnej jednostki.
-        if (!$unit && $product['unit'] === 'l') {
+        if (! $unit && $product['unit'] === 'l') {
             $unit = UnitOfMeasure::where('symbol', 't')->first();
         }
 

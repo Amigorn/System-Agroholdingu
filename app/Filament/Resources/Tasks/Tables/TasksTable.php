@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Tasks\Tables;
 
 use App\Filament\Resources\Tasks\TaskResource;
+use App\Models\Crop;
 use App\Models\Machine;
 use App\Models\Resource;
 use App\Models\ResourceConsumption;
@@ -22,6 +23,29 @@ use Illuminate\Support\Facades\Schema as DbSchema;
 
 class TasksTable
 {
+    protected static function isSowingTask($record): bool
+    {
+        return mb_strtolower(trim((string) ($record->type ?? ''))) === 'siew';
+    }
+
+    protected static function updateCropSowingDateFromTask($record, string $sowingDate): void
+    {
+        if (! static::isSowingTask($record) || empty($record->field_id)) {
+            return;
+        }
+
+        $cropId = Crop::query()
+            ->where('field_id', $record->field_id)
+            ->orderByDesc('id')
+            ->value('id');
+
+        if ($cropId) {
+            Crop::query()
+                ->whereKey((int) $cropId)
+                ->update(['sowing_date' => $sowingDate]);
+        }
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -264,12 +288,19 @@ class TasksTable
                             }
                         }
 
+                       $completedAt = now();
+
                         $record->update([
                             'status' => 'completed',
-                            'started_at' => $record->started_at ?? $record->planned_at ?? now(),
-                            'completed_at' => now(),
+                            'started_at' => $record->started_at ?? $record->planned_at ?? $completedAt,
+                            'completed_at' => $completedAt,
                         ]);
 
+                        static::updateCropSowingDateFromTask(
+                            $record,
+                            $completedAt->toDateString()
+                        );
+                        
                         $releaseMachineIfFree = function (?int $machineId) use ($record): void {
                             if (! $machineId) {
                                 return;
@@ -294,8 +325,15 @@ class TasksTable
                             $releaseMachineIfFree($tm->machine_id ? (int) $tm->machine_id : null);
                         }
 
+                        $body = 'Zadanie zakończone, paliwo i surowce rozliczone!';
+                            if (static::isSowingTask($record) && ! empty($record->field_id)) {
+                                $fieldName = $record->field?->name ?? ("Pole #{$record->field_id}");
+                                $body .= " Zaktualizowano datę siewu dla pola „{$fieldName}” na {$completedAt->format('d.m.Y')}.";
+                            }
+
                         Notification::make()
-                            ->title('Zadanie zakończone, paliwo i surowce rozliczone!')
+                            ->title('Zadanie zakończone')
+                            ->body($body)
                             ->success()
                             ->send();
                     }),

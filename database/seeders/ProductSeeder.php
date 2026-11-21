@@ -17,29 +17,28 @@ class ProductSeeder extends Seeder
         $litre = UnitOfMeasure::whereIn('symbol', ['l', 'litr'])->first()
             ?? $tonne;
 
-        if (!$tonne) {
+        if (! $tonne) {
             throw new RuntimeException(
                 'Brak jednostek miary. Najpierw uruchom UnitOfMeasureSeeder.'
             );
         }
 
         $productsToSeed = [
-            ['name' => 'Pszenica ozima', 'unit' => $tonne, 'type' => 'plon'],
-            ['name' => 'Olej rzepakowy', 'unit' => $litre, 'type' => 'produkt_przetworzony'],
-            ['name' => 'Rzepak ozimy', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Pszenica jara', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Mąka pszenna', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
             ['name' => 'Kukurydza na ziarno', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Olej słonecznikowy', 'unit' => $litre, 'type' => 'produkt_przetworzony'],
             ['name' => 'Jęczmień jary', 'unit' => $tonne, 'type' => 'plon'],
-            ['name' => 'Śruta rzepakowa', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
             ['name' => 'Burak cukrowy', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Słonecznik', 'unit' => $tonne, 'type' => 'plon'],
-            ['name' => 'Mąka żytnia', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
             ['name' => 'Groch siewny', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Soja', 'unit' => $tonne, 'type' => 'plon'],
-            ['name' => 'Żyto ozime', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Owies', 'unit' => $tonne, 'type' => 'plon'],
             ['name' => 'Otręby pszenne', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
+            ['name' => 'Łubin żółty', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Rzepik jary', 'unit' => $tonne, 'type' => 'plon'],
+            ['name' => 'Olej rzepikowy', 'unit' => $litre, 'type' => 'produkt_przetworzony'],
+            ['name' => 'Płatki owsiane', 'unit' => $tonne, 'type' => 'produkt_przetworzony'],
         ];
 
         foreach ($productsToSeed as $item) {

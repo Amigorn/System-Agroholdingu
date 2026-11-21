@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\Crops\Schemas;
 
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class CropForm
@@ -18,21 +19,24 @@ class CropForm
                     ->required()
                     ->maxLength(255),
 
-                Select::make('sezon_uprawowy_id')
+                Select::make('season_id')
                     ->label('Sezon uprawowy')
                     ->relationship('season', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
 
-                Select::make('pole_id')
+                Select::make('field_id')
                     ->label('Pole uprawne')
                     ->relationship('field', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
+                
+                DatePicker::make('sowing_date')
+                    ->label('Data siewu'),
 
-                Textarea::make('opis')
+                Textarea::make('description')
                     ->label('Opis'),
             ]);
     }

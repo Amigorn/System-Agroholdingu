@@ -9,7 +9,7 @@ class Crop extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'field_id', 'season_id'];
+    protected $fillable = ['name', 'description','sowing_date', 'field_id', 'season_id'];
 
     public function field() { 
         return $this->belongsTo(Field::class, 'field_id'); 

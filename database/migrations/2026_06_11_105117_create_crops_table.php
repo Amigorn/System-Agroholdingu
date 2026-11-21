@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->text('sowing_date')->nullable();
             $table->foreignId('field_id')->constrained('fields')->onDelete('cascade');
             $table->foreignId('season_id')->constrained('seasons')->onDelete('cascade'); 
             $table->timestamps();
