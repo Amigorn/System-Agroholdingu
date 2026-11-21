@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
-            $table->string('name');         // Nazwa magazynu (np. "Magazyn Główny")
-            $table->string('location')->nullable(); // Lokalizacja (np. "Siedziba główna - budynek B")
+            $table->string('name');
+            $table->string('category')->nullable();
+            $table->string('location')->nullable();
             $table->timestamps();
         });
     }

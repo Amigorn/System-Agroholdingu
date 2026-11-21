@@ -20,6 +20,11 @@ class WarehousesTable
                     ->label('Nazwa magazynu')
                     ->searchable()
                     ->sortable(),
+                    
+                TextColumn::make('category')
+                    ->label('Kategoria')
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('location')
                     ->label('Lokalizacja')

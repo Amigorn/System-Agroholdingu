@@ -15,7 +15,8 @@ class WarehouseFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'Magazyn ' . fake()->unique()->randomElement(['Główny', 'Nawozów', 'Paliw', 'Nasion', 'Zbożowy', 'Maszynowy']),
+            'name' => 'Magazyn ' . fake()->unique()->randomElement(['A1', 'B2', 'C3', 'D4', 'E5']),
+            'category' => fake()->unique()->randomElement(['Nawozów', 'Paliw', 'Nasion', 'Zbożowy', 'Maszynowy']),
             'location' => 'Gospodarstwo - sektor ' . fake()->randomLetter(),
         ];
     }

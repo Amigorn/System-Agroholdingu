@@ -21,6 +21,10 @@ class HarvestsTable
                     ->dateTime()
                     ->date('d.m.Y')
                     ->sortable(),
+                TextColumn::make('crop.name')
+                    ->label('Uprawa')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('quantity')
                     ->label('Ilość')
                     ->alignRight()
@@ -28,10 +32,6 @@ class HarvestsTable
                     ->sortable(),
                 TextColumn::make('unit.name')
                     ->label('Jednostka')
-                    ->sortable(),
-                TextColumn::make('crop.name')
-                    ->label('Uprawa')
-                    ->searchable()
                     ->sortable(),
                 TextColumn::make('field.name')
                     ->label('Pole')
