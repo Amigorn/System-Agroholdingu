@@ -2,15 +2,12 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\StatsOverview;
 use App\Models\Crop;
 use App\Models\Field;
 use App\Models\Machine;
 use App\Models\Task;
 use BackedEnum;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,39 +19,39 @@ use UnitEnum;
 class Reports extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
-
     protected static ?string $navigationLabel = 'Raporty Operacyjne';
-
+    protected static ?string $title = 'Raporty';
     protected static ?string $slug = 'reports/operational';
-
     protected static string|UnitEnum|null $navigationGroup = 'Raporty i Zestawienia';
-
     protected string $view = 'filament.pages.reports';
 
     public string $fieldWorkPeriod = '90d';
 
     public int $completedTasksPage = 1;
-
     public int $pendingTasksPage = 1;
+    public int $byFieldPage = 1;
+    public int $byEmployeePage = 1;
+    public int $byMachinePage = 1;
+    public int $fuelRowsPage = 1;
+    public int $cropsRowsPage = 1;
 
     public function updatedFieldWorkPeriod(): void
     {
         $this->completedTasksPage = 1;
         $this->pendingTasksPage = 1;
+        $this->byFieldPage = 1;
+        $this->byEmployeePage = 1;
+        $this->byMachinePage = 1;
     }
 
     protected function getHeaderActions(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     protected function getHeaderWidgets(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public function getReportSections(): array
@@ -62,9 +59,9 @@ class Reports extends Page
         return [
             'field_work' => $this->getFieldWorkReport(),
             'fuel_costs' => $this->getFuelAndOperatingCostsReport(),
-            'machines' => $this->getMachinesReport(),
-            'employees' => $this->getEmployeesReport(),
             'fields_crops' => $this->getFieldsAndCropsReport(),
+            'employees' => $this->getEmployeesReport(),
+            'machines' => $this->getMachinesReport(),
         ];
     }
 
@@ -79,29 +76,46 @@ class Reports extends Page
         };
     }
 
+    protected function paginateReportItems(Collection|array $items, int $page, int $perPage = 5): array
+    {
+        $items = collect($items)->values();
+        $total = $items->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min(max(1, $page), $lastPage);
+
+        return [
+            'items' => $items->forPage($page, $perPage)->values()->all(),
+            'pagination' => [
+                'current_page' => $page,
+                'last_page' => $lastPage,
+                'total' => $total,
+                'from' => $total > 0 ? (($page - 1) * $perPage + 1) : null,
+                'to' => $total > 0 ? min($page * $perPage, $total) : null,
+            ],
+        ];
+    }
+
     protected function isCompletedTask(object $task): bool
     {
         $status = strtolower((string) ($task->status ?? ''));
 
-        if (in_array($status, ['completed', 'done', 'finished', 'ukończone', 'wykonane', 'zakończone'], true)) {
-            return true;
-        }
-
-        return ! empty($task->completed_at);
+        return in_array($status, [
+            'completed', 'done', 'finished', 'ukończone', 'wykonane', 'zakończone',
+        ], true) || ! empty($task->completed_at);
     }
 
     protected function extractTaskArea(object $task): float
     {
-        foreach (['area', 'hectares', 'worked_area', 'treated_area'] as $col) {
-            if (isset($task->{$col}) && is_numeric($task->{$col})) {
-                return (float) $task->{$col};
+        foreach (['area', 'hectares', 'worked_area', 'treated_area'] as $column) {
+            if (isset($task->{$column}) && is_numeric($task->{$column})) {
+                return (float) $task->{$column};
             }
         }
 
-        if (isset($task->field) && is_object($task->field)) {
-            foreach (['area', 'hectares'] as $fCol) {
-                if (isset($task->field->{$fCol}) && is_numeric($task->field->{$fCol})) {
-                    return (float) $task->field->{$fCol};
+        if ($task->relationLoaded('field') && $task->field) {
+            foreach (['area', 'hectares'] as $column) {
+                if (isset($task->field->{$column}) && is_numeric($task->field->{$column})) {
+                    return (float) $task->field->{$column};
                 }
             }
         }
@@ -111,25 +125,23 @@ class Reports extends Page
 
     protected function extractTaskHours(object $task): float
     {
-        $total = 0.0;
-
-        // 1. Jeśli zużycia zasobów przechowują bezpośrednio godziny / mth, użyj ich w pierwszej kolejności
         if ($task->relationLoaded('resourceConsumptions') && $task->resourceConsumptions instanceof Collection) {
-            foreach ($task->resourceConsumptions as $rc) {
-                foreach (['hours', 'engine_hours', 'mth', 'moto_hours', 'work_hours'] as $col) {
-                    if (isset($rc->{$col}) && is_numeric($rc->{$col}) && (float) $rc->{$col} > 0) {
-                        $total += (float) $rc->{$col};
+            $total = 0.0;
+
+            foreach ($task->resourceConsumptions as $consumption) {
+                foreach (['hours', 'engine_hours', 'mth', 'moto_hours', 'work_hours'] as $column) {
+                    if (isset($consumption->{$column}) && is_numeric($consumption->{$column}) && $consumption->{$column} > 0) {
+                        $total += (float) $consumption->{$column};
                         break;
                     }
                 }
             }
+
+            if ($total > 0) {
+                return round($total, 2);
+            }
         }
 
-        if ($total > 0) {
-            return round($total, 2);
-        }
-
-        // 2. Realny czas pracy: started_at -> completed_at
         if (! empty($task->started_at) && ! empty($task->completed_at)) {
             $start = Carbon::parse($task->started_at);
             $end = Carbon::parse($task->completed_at);
@@ -139,12 +151,11 @@ class Reports extends Page
             }
         }
 
-        // 3. Fallback dla ukończonych zadań: planned_at -> completed_at / planned_end_at
         if ($this->isCompletedTask($task)) {
             $startRaw = $task->started_at ?? $task->planned_at;
             $endRaw = $task->completed_at ?? $task->planned_end_at;
 
-            if (! empty($startRaw) && ! empty($endRaw)) {
+            if ($startRaw && $endRaw) {
                 $start = Carbon::parse($startRaw);
                 $end = Carbon::parse($endRaw);
 
@@ -156,59 +167,8 @@ class Reports extends Page
 
         return 0.0;
     }
-    protected function resolveEmployeeNames(Collection $tasks): array
-    {
-        $map = [];
 
-        // 1. Z załadowanych relacji na zadaniu
-        foreach ($tasks as $task) {
-            foreach (['employee', 'user', 'worker', 'assignee', 'assignedTo'] as $rel) {
-                if (isset($task->{$rel}) && is_object($task->{$rel})) {
-                    $obj = $task->{$rel};
-                    $full = trim(($obj->first_name ?? '') . ' ' . ($obj->last_name ?? ''));
-                    $label = $full !== '' ? $full : ($obj->name ?? $obj->email ?? null);
-
-                    if ($label && isset($obj->id)) {
-                        $map['rel:' . $rel . ':' . $obj->id] = $label;
-                    }
-                }
-            }
-        }
-
-        // 2. Z tabel pracowników / użytkowników po ID z kluczy obcych
-        $fkColumns = ['employee_id', 'user_id', 'worker_id', 'assignee_id', 'assigned_to', 'created_by'];
-        $ids = collect();
-
-        foreach ($tasks as $task) {
-            foreach ($fkColumns as $fk) {
-                if (! empty($task->{$fk}) && is_numeric($task->{$fk})) {
-                    $ids->push((int) $task->{$fk});
-                }
-            }
-        }
-
-        $ids = $ids->unique()->values();
-        if ($ids->isEmpty()) {
-            return $map;
-        }
-
-        foreach (['employees', 'workers', 'staff', 'users'] as $table) {
-            if (! Schema::hasTable($table)) {
-                continue;
-            }
-
-            $rows = DB::table($table)->whereIn('id', $ids)->get();
-            foreach ($rows as $row) {
-                $full = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
-                $label = $full !== '' ? $full : ($row->name ?? $row->email ?? ('Pracownik #' . $row->id));
-                $map['table:' . $table . ':' . $row->id] = $label;
-            }
-        }
-
-        return $map;
-    }
-
-protected function getFieldWorkReport(): array
+    protected function getFieldWorkReport(): array
     {
         $periodOptions = [
             '30d' => 'Ostatnie 30 dni',
@@ -217,7 +177,11 @@ protected function getFieldWorkReport(): array
             'all' => 'Cały okres',
         ];
 
-        $emptyResult = [
+        $emptyPagination = [
+            'current_page' => 1, 'last_page' => 1, 'total' => 0, 'from' => null, 'to' => null,
+        ];
+
+        $empty = [
             'title' => 'Raporty dotyczące prac polowych',
             'subtitle' => 'Wykonane i zaplanowane zabiegi, powierzchnia uprawiona, motogodziny oraz podział na pola, pracowników i maszyny.',
             'type' => 'field_work',
@@ -228,483 +192,268 @@ protected function getFieldWorkReport(): array
                 ['label' => 'Liczba przepracowanych motogodzin', 'value' => '0,0 mth'],
                 ['label' => 'Stopień realizacji planu prac polowych', 'value' => '0,0%'],
             ],
-            'summary_counts' => [
-                'completed' => 0,
-                'pending' => 0,
-                'total' => 0,
-            ],
-            'completed_tasks' => [],
-            'pending_tasks' => [],
-            'by_field' => [],
-            'by_employee' => [],
-            'by_machine' => [],
-            'columns' => ['Zabieg / Praca', 'Pole i data', 'Status'],
-            'rows' => [],
+            'summary_counts' => ['completed' => 0, 'pending' => 0, 'total' => 0],
+            'completed_tasks' => [], 'completed_pagination' => $emptyPagination,
+            'pending_tasks' => [], 'pending_pagination' => $emptyPagination,
+            'by_field' => [], 'by_field_pagination' => $emptyPagination,
+            'by_employee' => [], 'by_employee_pagination' => $emptyPagination,
+            'by_machine' => [], 'by_machine_pagination' => $emptyPagination,
+            'columns' => [], 'rows' => [],
         ];
 
         if (! class_exists(Task::class) || ! Schema::hasTable('tasks')) {
-            return $emptyResult;
+            return $empty;
         }
 
         $start = $this->resolvePeriodStart();
-        $canUseTaskMachines = Schema::hasTable('task_machines') && method_exists(Task::class, 'taskMachines');
-        $canUseConsumptions = Schema::hasTable('resource_consumptions') && method_exists(Task::class, 'resourceConsumptions');
+        $relations = [];
 
-        $withRelations = collect(['field'])
-            ->filter(fn (string $rel) => method_exists(Task::class, $rel))
-            ->when($canUseTaskMachines, function ($c) {
-                if (class_exists(\App\Models\TaskMachine::class)) {
-                    foreach (['user', 'machine', 'tractor'] as $tmRel) {
-                        if (method_exists(\App\Models\TaskMachine::class, $tmRel)) {
-                            $c->push('taskMachines.' . $tmRel);
-                        }
+        if (method_exists(Task::class, 'field')) {
+            $relations[] = 'field';
+        }
+        if (Schema::hasTable('task_machines') && method_exists(Task::class, 'taskMachines')) {
+            $relations[] = 'taskMachines';
+            if (class_exists(\App\Models\TaskMachine::class)) {
+                foreach (['machine', 'tractor', 'user'] as $relation) {
+                    if (method_exists(\App\Models\TaskMachine::class, $relation)) {
+                        $relations[] = 'taskMachines.' . $relation;
                     }
                 }
-                $c->push('taskMachines');
-            })
-            ->when($canUseConsumptions, fn ($c) => $c->push('resourceConsumptions'))
-            ->unique()
-            ->values()
-            ->all();
+            }
+        }
+        if (Schema::hasTable('resource_consumptions') && method_exists(Task::class, 'resourceConsumptions')) {
+            $relations[] = 'resourceConsumptions';
+        }
 
-        $completedStatuses = [
-            'completed',
-            'done',
-            'finished',
-            'ukończone',
-            'wykonane',
-            'zakończone',
-        ];
+        $completedStatuses = ['completed', 'done', 'finished', 'ukończone', 'wykonane', 'zakończone'];
 
-        /** @var Builder $tasksQuery */
-        $tasksQuery = Task::query()
-            ->when($withRelations !== [], fn (Builder $q) => $q->with($withRelations))
-            ->when($start !== null, function (Builder $q) use ($start, $completedStatuses) {
-                $q->where(function (Builder $sub) use ($start, $completedStatuses) {
-                    // Zadania wykonane
-                    $sub->where(function (Builder $completedQ) use ($start, $completedStatuses) {
-                        $completedQ->whereIn('status', $completedStatuses);
+        $query = Task::query()->when($relations, fn (Builder $q) => $q->with(array_unique($relations)));
 
-                        $completedQ->where(function (Builder $dateQ) use ($start) {
-                            $hasAnyDateCol = false;
+        if ($start) {
+            $query->where(function (Builder $outer) use ($start, $completedStatuses) {
+                // Zadania wykonane: data zakończenia, a w starszych rekordach daty planowane.
+                $outer->where(function (Builder $completedQuery) use ($start, $completedStatuses) {
+                    $completedQuery->whereIn('status', $completedStatuses);
+                    $completedQuery->where(function (Builder $dates) use ($start) {
+                        $hasDate = false;
 
-                            if (Schema::hasColumn('tasks', 'completed_at')) {
-                                $dateQ->where('completed_at', '>=', $start);
-                                $hasAnyDateCol = true;
-                            }
-
-                            if (Schema::hasColumn('tasks', 'planned_end_at')) {
-                                $method = $hasAnyDateCol ? 'orWhere' : 'where';
-                                $dateQ->{$method}(function (Builder $q) use ($start) {
-                                    $q->whereNull('completed_at')
-                                        ->where('planned_end_at', '>=', $start);
-                                });
-                                $hasAnyDateCol = true;
-                            }
-
-                            if (Schema::hasColumn('tasks', 'planned_at')) {
-                                $method = $hasAnyDateCol ? 'orWhere' : 'where';
-                                $dateQ->{$method}(function (Builder $q) use ($start) {
-                                    $q->whereNull('completed_at')
-                                        ->whereNull('planned_end_at')
-                                        ->where('planned_at', '>=', $start);
-                                });
-                                $hasAnyDateCol = true;
-                            }
-
-                            if (Schema::hasColumn('tasks', 'created_at')) {
-                                $method = $hasAnyDateCol ? 'orWhere' : 'where';
-                                $dateQ->{$method}(function (Builder $q) use ($start) {
-                                    $q->whereNull('completed_at')
-                                        ->whereNull('planned_end_at')
-                                        ->whereNull('planned_at')
-                                        ->where('created_at', '>=', $start);
-                                });
-                            }
-                        });
+                        if (Schema::hasColumn('tasks', 'completed_at')) {
+                            $dates->where('completed_at', '>=', $start);
+                            $hasDate = true;
+                        }
+                        if (Schema::hasColumn('tasks', 'planned_end_at')) {
+                            $method = $hasDate ? 'orWhere' : 'where';
+                            $dates->{$method}(function (Builder $q) use ($start) {
+                                $q->whereNull('completed_at')->where('planned_end_at', '>=', $start);
+                            });
+                            $hasDate = true;
+                        }
+                        if (Schema::hasColumn('tasks', 'planned_at')) {
+                            $method = $hasDate ? 'orWhere' : 'where';
+                            $dates->{$method}(function (Builder $q) use ($start) {
+                                $q->whereNull('completed_at')->whereNull('planned_end_at')->where('planned_at', '>=', $start);
+                            });
+                            $hasDate = true;
+                        }
+                        if (Schema::hasColumn('tasks', 'created_at')) {
+                            $method = $hasDate ? 'orWhere' : 'where';
+                            $dates->{$method}(function (Builder $q) use ($start) {
+                                $q->whereNull('completed_at')->whereNull('planned_end_at')->whereNull('planned_at')->where('created_at', '>=', $start);
+                            });
+                        }
                     });
+                });
 
-                    // Zadania niewykonane / w realizacji
-                    $sub->orWhere(function (Builder $pendingQ) use ($start, $completedStatuses) {
-                        $pendingQ->whereNotIn('status', $completedStatuses);
-
-                        $pendingQ->where(function (Builder $dateQ) use ($start) {
-                            $hasAnyDateCol = false;
-
-                            if (Schema::hasColumn('tasks', 'planned_at')) {
-                                $dateQ->where('planned_at', '>=', $start);
-                                $hasAnyDateCol = true;
-                            }
-
-                            if (Schema::hasColumn('tasks', 'planned_end_at')) {
-                                $method = $hasAnyDateCol ? 'orWhere' : 'where';
-                                $dateQ->{$method}('planned_end_at', '>=', $start);
-                                $hasAnyDateCol = true;
-                            }
-
-                            if (Schema::hasColumn('tasks', 'created_at')) {
-                                $method = $hasAnyDateCol ? 'orWhere' : 'where';
-                                $dateQ->{$method}(function (Builder $q) use ($start) {
-                                    $q->whereNull('planned_at')
-                                        ->whereNull('planned_end_at')
-                                        ->where('created_at', '>=', $start);
-                                });
-                            }
-                        });
+                // Zadania oczekujące / w realizacji.
+                $outer->orWhere(function (Builder $pendingQuery) use ($start, $completedStatuses) {
+                    $pendingQuery->whereNotIn('status', $completedStatuses);
+                    $pendingQuery->where(function (Builder $dates) use ($start) {
+                        $hasDate = false;
+                        if (Schema::hasColumn('tasks', 'planned_at')) {
+                            $dates->where('planned_at', '>=', $start);
+                            $hasDate = true;
+                        }
+                        if (Schema::hasColumn('tasks', 'planned_end_at')) {
+                            $method = $hasDate ? 'orWhere' : 'where';
+                            $dates->{$method}('planned_end_at', '>=', $start);
+                            $hasDate = true;
+                        }
+                        if (Schema::hasColumn('tasks', 'created_at')) {
+                            $method = $hasDate ? 'orWhere' : 'where';
+                            $dates->{$method}(function (Builder $q) use ($start) {
+                                $q->whereNull('planned_at')->whereNull('planned_end_at')->where('created_at', '>=', $start);
+                            });
+                        }
                     });
                 });
             });
+        }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Wszystkie zadania w okresie
-        |--------------------------------------------------------------------------
-        */
-        $allTasks = (clone $tasksQuery)
-            ->latest('id')
-            ->get();
+        $allTasks = $query->latest('id')->get();
+        $completed = $allTasks->filter(fn ($task) => $this->isCompletedTask($task))->values();
+        $pending = $allTasks->reject(fn ($task) => $this->isCompletedTask($task))->values();
 
-        $completedCollection = $allTasks
-            ->filter(fn ($t) => $this->isCompletedTask($t))
-            ->values();
+        $completedResult = $this->paginateReportItems($completed, $this->completedTasksPage);
+        $pendingResult = $this->paginateReportItems($pending, $this->pendingTasksPage);
+        $this->completedTasksPage = $completedResult['pagination']['current_page'];
+        $this->pendingTasksPage = $pendingResult['pagination']['current_page'];
 
-        $pendingCollection = $allTasks
-            ->reject(fn ($t) => $this->isCompletedTask($t))
-            ->values();
+        $workedArea = $completed->sum(fn ($task) => $this->extractTaskArea($task));
+        $workedHours = $completed->sum(fn ($task) => $this->extractTaskHours($task));
+        $completedCount = $completed->count();
+        $pendingCount = $pending->count();
+        $totalCount = $allTasks->count();
+        $completionRate = $totalCount > 0 ? round(($completedCount / $totalCount) * 100, 1) : 0;
 
-        // Niezależna paginacja dwóch list w sekcji prac polowych.
-        $tasksPerPage = 5;
-        $completedTotal = $completedCollection->count();
-        $pendingTotal = $pendingCollection->count();
-        $completedLastPage = max(1, (int) ceil($completedTotal / $tasksPerPage));
-        $pendingLastPage = max(1, (int) ceil($pendingTotal / $tasksPerPage));
-        $this->completedTasksPage = min(max(1, $this->completedTasksPage), $completedLastPage);
-        $this->pendingTasksPage = min(max(1, $this->pendingTasksPage), $pendingLastPage);
+        $byFieldAll = $completed->groupBy(function ($task) {
+            return ($task->relationLoaded('field') && $task->field)
+                ? ($task->field->name ?? ('Pole #' . $task->field->id))
+                : (! empty($task->field_id) ? 'Pole #' . $task->field_id : 'Bez przypisanego pola');
+        })->map(function (Collection $group, string $name) {
+            $treatments = $group->map(fn ($task) => $task->type ?: ($task->description ?: 'Zabieg polowy'))
+                ->filter()->unique()->take(3)->implode(', ');
 
-        $completedPagination = [
-            'current_page' => $this->completedTasksPage,
-            'last_page' => $completedLastPage,
-            'total' => $completedTotal,
-            'from' => $completedTotal ? (($this->completedTasksPage - 1) * $tasksPerPage + 1) : null,
-            'to' => $completedTotal ? min($this->completedTasksPage * $tasksPerPage, $completedTotal) : null,
-        ];
-        $pendingPagination = [
-            'current_page' => $this->pendingTasksPage,
-            'last_page' => $pendingLastPage,
-            'total' => $pendingTotal,
-            'from' => $pendingTotal ? (($this->pendingTasksPage - 1) * $tasksPerPage + 1) : null,
-            'to' => $pendingTotal ? min($this->pendingTasksPage * $tasksPerPage, $pendingTotal) : null,
-        ];
+            return [
+                'name' => $name,
+                'treatments' => $treatments ?: 'Zabiegi polowe',
+                'count' => $group->count(),
+                'area' => number_format($group->sum(fn ($task) => $this->extractTaskArea($task)), 2, ',', ' ') . ' ha',
+            ];
+        })->sortByDesc('count')->values();
 
-        $completedCount = $completedCollection->count();
-        $pendingCount = $pendingCollection->count();
-        $totalPlanCount = $allTasks->count();
-
-        $workedArea = $completedCollection->sum(
-            fn ($t) => $this->extractTaskArea($t)
-        );
-
-        $workedHours = $completedCollection->sum(
-            fn ($t) => $this->extractTaskHours($t)
-        );
-
-        $completionRate = $totalPlanCount > 0
-            ? round(($completedCount / $totalPlanCount) * 100, 1)
-            : 0.0;
-
-        /*
-        |--------------------------------------------------------------------------
-        | 1. Prace według pól
-        |--------------------------------------------------------------------------
-        */
-        $byField = $completedCollection
-            ->groupBy(function ($t) {
-                if ($t->relationLoaded('field') && $t->field) {
-                    return $t->field->name ?? ('Pole #' . $t->field->id);
-                }
-
-                return ! empty($t->field_id)
-                    ? ('Pole #' . $t->field_id)
-                    : 'Bez przypisanego pola';
-            })
-            ->map(function (Collection $group, string $fieldName) {
-                $treatments = $group
-                    ->map(fn ($t) => $t->type ?: ($t->description ?: 'Zabieg polowy'))
-                    ->filter()
-                    ->unique()
-                    ->take(3)
-                    ->implode(', ');
-
-                $area = $group->sum(
-                    fn ($t) => $this->extractTaskArea($t)
-                );
-
-                return [
-                    'name' => $fieldName,
-                    'treatments' => $treatments !== ''
-                        ? $treatments
-                        : 'Zabiegi polowe',
-                    'count' => $group->count(),
-                    'area' => number_format($area, 2, ',', ' ') . ' ha',
-                ];
-            })
-            ->sortByDesc('count')
-            ->values()
-            ->take(5)
-            ->all();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 2. Prace według pracowników (user_id siedzi w task_machines)
-        |--------------------------------------------------------------------------
-        */
-        $employeeSource = $completedCollection->isNotEmpty() ? $completedCollection : $allTasks;
-
-        $userIds = $employeeSource
-            ->flatMap(function ($t) {
-                if (! $t->relationLoaded('taskMachines') || ! $t->taskMachines) {
-                    return [];
-                }
-
-                return $t->taskMachines->pluck('user_id');
-            })
-            ->filter(fn ($id) => ! empty($id) && is_numeric($id))
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
+        $employeeSource = $completed->isNotEmpty() ? $completed : $allTasks;
+        $userIds = $employeeSource->flatMap(function ($task) {
+            return ($task->relationLoaded('taskMachines') && $task->taskMachines)
+                ? $task->taskMachines->pluck('user_id') : [];
+        })->filter()->map(fn ($id) => (int) $id)->unique()->values();
 
         $usersMap = [];
         if ($userIds->isNotEmpty() && class_exists(\App\Models\User::class)) {
-            $usersMap = \App\Models\User::query()
-                ->whereIn('id', $userIds)
-                ->get()
-                ->mapWithKeys(function ($user) {
-                    $fullName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
-                    $label = $fullName !== ''
-                        ? $fullName
-                        : ($user->email ?? ('Pracownik #' . $user->id));
-
-                    return [(int) $user->id => $label];
-                })
-                ->all();
+            $usersMap = \App\Models\User::query()->whereIn('id', $userIds)->get()->mapWithKeys(function ($user) {
+                $name = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+                return [$user->id => ($name ?: ($user->name ?? $user->email ?? ('Pracownik #' . $user->id)))];
+            })->all();
         }
 
         $employeeStats = collect();
-
         foreach ($employeeSource as $task) {
+            $taskMachines = ($task->relationLoaded('taskMachines') && $task->taskMachines)
+                ? $task->taskMachines->filter(fn ($tm) => ! empty($tm->user_id)) : collect();
             $taskType = $task->type ?: 'Praca polowa';
-            $taskHours = $this->extractTaskHours($task);
+            $hours = $this->extractTaskHours($task);
+            $ids = $taskMachines->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values();
 
-            $tms = ($task->relationLoaded('taskMachines') && $task->taskMachines)
-                ? $task->taskMachines->filter(fn ($tm) => ! empty($tm->user_id))
-                : collect();
-
-            if ($tms->isEmpty()) {
-                $current = $employeeStats->get('Nieprzypisany', [
-                    'name' => 'Nieprzypisany',
-                    'kinds' => collect(),
-                    'count' => 0,
-                    'hours' => 0.0,
-                ]);
-                $current['kinds']->push($taskType);
-                $current['count'] += 1;
-                $current['hours'] += $taskHours;
-                $employeeStats->put('Nieprzypisany', $current);
-                continue;
+            if ($ids->isEmpty()) {
+                $ids = collect([0]);
             }
 
-            $uniqueUsersInTask = $tms->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values();
-            $shareHours = $uniqueUsersInTask->count() > 0 ? ($taskHours / $uniqueUsersInTask->count()) : 0.0;
-
-            foreach ($uniqueUsersInTask as $uid) {
-                $name = $usersMap[$uid] ?? ('Pracownik #' . $uid);
-                $current = $employeeStats->get($name, [
-                    'name' => $name,
-                    'kinds' => collect(),
-                    'count' => 0,
-                    'hours' => 0.0,
+            foreach ($ids as $id) {
+                $name = $id ? ($usersMap[$id] ?? ('Pracownik #' . $id)) : 'Nieprzypisany';
+                $entry = $employeeStats->get($name, [
+                    'name' => $name, 'kinds' => collect(), 'count' => 0, 'hours' => 0.0,
                 ]);
-                $current['kinds']->push($taskType);
-                $current['count'] += 1;
-                $current['hours'] += $shareHours;
-                $employeeStats->put($name, $current);
+                $entry['kinds']->push($taskType);
+                $entry['count']++;
+                $entry['hours'] += $hours / max(1, $ids->count());
+                $employeeStats->put($name, $entry);
             }
         }
 
-        $byEmployee = $employeeStats
-            ->sortByDesc('count')
-            ->take(5)
-            ->map(function (array $item) {
-                $kinds = $item['kinds']->filter()->unique()->take(2)->implode(', ');
+        $byEmployeeAll = $employeeStats->sortByDesc('count')->map(function (array $item) {
+            $kinds = $item['kinds']->filter()->unique()->take(2)->implode(', ');
+            return [
+                'name' => $item['name'], 'kinds' => $kinds ?: 'Prace polowe',
+                'count' => $item['count'], 'hours' => number_format($item['hours'], 1, ',', ' ') . ' mth',
+            ];
+        })->values();
 
-                return [
-                    'name' => $item['name'],
-                    'kinds' => $kinds !== '' ? $kinds : 'Prace polowe',
-                    'count' => $item['count'],
-                    'hours' => number_format($item['hours'], 1, ',', ' ') . ' mth',
-                ];
-            })
-            ->values()
-            ->all();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. Prace według maszyn (oraz ciągników w task_machines)
-        |--------------------------------------------------------------------------
-        */
         $machineStats = collect();
-
-        $machineIdsToFetch = collect();
-        foreach ($completedCollection as $task) {
-            if ($task->relationLoaded('taskMachines') && $task->taskMachines) {
-                foreach ($task->taskMachines as $tm) {
-                    if (! empty($tm->machine_id) && is_numeric($tm->machine_id)) {
-                        $machineIdsToFetch->push((int) $tm->machine_id);
-                    }
-                    if (! empty($tm->tractor_id) && is_numeric($tm->tractor_id)) {
-                        $machineIdsToFetch->push((int) $tm->tractor_id);
-                    }
-                }
+        $machineIds = $completed->flatMap(function ($task) {
+            if (! $task->relationLoaded('taskMachines') || ! $task->taskMachines) {
+                return [];
             }
-        }
+            return $task->taskMachines->flatMap(fn ($tm) => array_filter([$tm->machine_id ?? null, $tm->tractor_id ?? null]));
+        })->map(fn ($id) => (int) $id)->unique()->values();
 
-        $machinesMap = [];
-        if ($machineIdsToFetch->isNotEmpty() && class_exists(Machine::class)) {
-            $machinesMap = Machine::query()
-                ->whereIn('id', $machineIdsToFetch->unique()->values())
-                ->get()
-                ->mapWithKeys(fn ($m) => [(int) $m->id => ($m->name ?? $m->model ?? ('Maszyna #' . $m->id))])
+        $machineMap = [];
+        if ($machineIds->isNotEmpty() && class_exists(Machine::class)) {
+            $machineMap = Machine::query()->whereIn('id', $machineIds)->get()
+                ->mapWithKeys(fn ($machine) => [$machine->id => ($machine->name ?? $machine->model ?? ('Maszyna #' . $machine->id))])
                 ->all();
         }
 
-        foreach ($completedCollection as $task) {
-            $taskArea = $this->extractTaskArea($task);
-            $taskHours = $this->extractTaskHours($task);
-
-            $tms = ($task->relationLoaded('taskMachines') && $task->taskMachines)
-                ? $task->taskMachines
-                : collect();
-
-            $unitsInTask = collect();
-            foreach ($tms as $tm) {
-                if (! empty($tm->machine_id) && is_numeric($tm->machine_id)) {
-                    $mid = (int) $tm->machine_id;
-                    $mObj = ($tm->relationLoaded('machine') && $tm->machine) ? $tm->machine : null;
-                    $mName = $mObj
-                        ? ($mObj->name ?? $mObj->model ?? ('Maszyna #' . $mObj->id))
-                        : ($machinesMap[$mid] ?? ('Maszyna #' . $mid));
-                    $unitsInTask->push($mName);
-                }
-
-                if (! empty($tm->tractor_id) && is_numeric($tm->tractor_id)) {
-                    $tid = (int) $tm->tractor_id;
-                    $tObj = ($tm->relationLoaded('tractor') && $tm->tractor) ? $tm->tractor : null;
-                    $tName = $tObj
-                        ? ($tObj->name ?? $tObj->model ?? ('Ciągnik #' . $tObj->id))
-                        : ($machinesMap[$tid] ?? ('Ciągnik #' . $tid));
-                    $unitsInTask->push($tName);
-                }
-            }
-
-            $unitsInTask = $unitsInTask->filter()->unique()->values();
-            if ($unitsInTask->isEmpty()) {
+        foreach ($completed as $task) {
+            if (! $task->relationLoaded('taskMachines') || ! $task->taskMachines) {
                 continue;
             }
 
-            $shareHours = $unitsInTask->count() > 0 ? ($taskHours / $unitsInTask->count()) : 0.0;
-            $shareArea = $unitsInTask->count() > 0 ? ($taskArea / $unitsInTask->count()) : 0.0;
+            $names = collect();
+            foreach ($task->taskMachines as $tm) {
+                foreach (['machine_id' => 'Maszyna', 'tractor_id' => 'Ciągnik'] as $column => $prefix) {
+                    $id = $tm->{$column} ?? null;
+                    if (! $id) {
+                        continue;
+                    }
+                    $relation = $column === 'machine_id' ? 'machine' : 'tractor';
+                    $object = method_exists($tm, 'relationLoaded') && $tm->relationLoaded($relation) ? $tm->{$relation} : null;
+                    $names->push($object?->name ?? $object?->model ?? ($machineMap[$id] ?? ($prefix . ' #' . $id)));
+                }
+            }
 
-            foreach ($unitsInTask as $unitName) {
-                $current = $machineStats->get($unitName, [
-                    'name' => $unitName,
-                    'tasks_count' => 0,
-                    'hours' => 0.0,
-                    'area' => 0.0,
+            $names = $names->filter()->unique()->values();
+            if ($names->isEmpty()) {
+                continue;
+            }
+
+            $hoursShare = $this->extractTaskHours($task) / $names->count();
+            $areaShare = $this->extractTaskArea($task) / $names->count();
+
+            foreach ($names as $name) {
+                $entry = $machineStats->get($name, [
+                    'name' => $name, 'tasks_count' => 0, 'hours' => 0.0, 'area' => 0.0,
                 ]);
-
-                $current['tasks_count'] += 1;
-                $current['hours'] += $shareHours;
-                $current['area'] += $shareArea;
-
-                $machineStats->put($unitName, $current);
+                $entry['tasks_count']++;
+                $entry['hours'] += $hoursShare;
+                $entry['area'] += $areaShare;
+                $machineStats->put($name, $entry);
             }
         }
 
-        $byMachine = $machineStats
-            ->sortByDesc('tasks_count')
-            ->take(5)
-            ->map(fn (array $item) => [
-                'name' => $item['name'],
-                'tasks_count' => $item['tasks_count'],
-                'hours' => number_format($item['hours'], 1, ',', ' ') . ' mth',
-                'area' => number_format($item['area'], 2, ',', ' ') . ' ha',
-            ])
-            ->values()
-            ->all();
+        $byMachineAll = $machineStats->sortByDesc('tasks_count')->map(fn (array $item) => [
+            'name' => $item['name'], 'tasks_count' => $item['tasks_count'],
+            'hours' => number_format($item['hours'], 1, ',', ' ') . ' mth',
+            'area' => number_format($item['area'], 2, ',', ' ') . ' ha',
+        ])->values();
 
-        $statusLabels = [
-            'completed' => 'Wykonano',
-            'done' => 'Wykonano',
-            'finished' => 'Wykonano',
-            'in_progress' => 'W toku',
-            'active' => 'W toku',
-            'planned' => 'Zaplanowane',
-            'pending' => 'Oczekujące',
-        ];
+        $byFieldResult = $this->paginateReportItems($byFieldAll, $this->byFieldPage);
+        $byEmployeeResult = $this->paginateReportItems($byEmployeeAll, $this->byEmployeePage);
+        $byMachineResult = $this->paginateReportItems($byMachineAll, $this->byMachinePage);
 
-        $formatScheduleWindow = function ($task, bool $completed): string {
-            if ($completed) {
-                $doneAt = $task->completed_at ?? $task->planned_end_at ?? $task->planned_at ?? $task->created_at;
+        $this->byFieldPage = $byFieldResult['pagination']['current_page'];
+        $this->byEmployeePage = $byEmployeeResult['pagination']['current_page'];
+        $this->byMachinePage = $byMachineResult['pagination']['current_page'];
 
-                return $doneAt ? ('Zakończono: ' . Carbon::parse($doneAt)->format('d.m.Y H:i')) : '-';
+        $formatTask = function ($task, bool $isCompleted) {
+            $title = $task->type ?: (\Illuminate\Support\Str::limit($task->description ?? '', 45) ?: ('Zabieg #' . $task->id));
+            $field = ($task->relationLoaded('field') && $task->field)
+                ? ($task->field->name ?? ('Pole #' . $task->field->id)) : 'Ogólne / brak pola';
+
+            if ($isCompleted) {
+                $date = $task->completed_at ?? $task->planned_end_at ?? $task->planned_at ?? $task->created_at;
+                $schedule = $date ? 'Zakończono: ' . Carbon::parse($date)->format('d.m.Y H:i') : '-';
+                $status = 'Wykonano';
+            } else {
+                $date = $task->planned_at ?? $task->created_at;
+                $schedule = $date ? Carbon::parse($date)->format('d.m.Y H:i') : '-';
+                $status = $task->status ?: 'Zaplanowane';
             }
-
-            $startAt = $task->planned_at ? Carbon::parse($task->planned_at) : ($task->created_at ? Carbon::parse($task->created_at) : null);
-            $endAt = $task->planned_end_at ? Carbon::parse($task->planned_end_at) : null;
-
-            if (! $startAt) {
-                return '-';
-            }
-
-            if (! $endAt) {
-                return $startAt->format('d.m.Y H:i');
-            }
-
-            if ($startAt->isSameDay($endAt)) {
-                return $startAt->format('d.m.Y') . ' (' . $startAt->format('H:i') . '–' . $endAt->format('H:i') . ')';
-            }
-
-            return $startAt->format('d.m.Y H:i') . ' – ' . $endAt->format('d.m.Y H:i');
-        };
-
-        $formatTaskRow = function ($task, bool $completed) use ($statusLabels, $formatScheduleWindow) {
-            $title = $task->type ?: ($task->description ? \Illuminate\Support\Str::limit($task->description, 45) : ('Zabieg #' . $task->id));
-            $fieldLabel = ($task->relationLoaded('field') && $task->field)
-                ? ($task->field->name ?? ('Pole #' . $task->field->id))
-                : 'Ogólne / brak pola';
-
-            $scheduleFormatted = $formatScheduleWindow($task, $completed);
-
-            $rawStatus = strtolower((string) ($task->status ?? 'planned'));
-            $statusLabel = $completed
-                ? 'Wykonano'
-                : ($statusLabels[$rawStatus] ?? ($task->status ?: 'Zaplanowane'));
 
             return [
                 'title' => $title,
-                'meta' => $fieldLabel . ' • ' . $scheduleFormatted,
-                'value' => $statusLabel,
+                'meta' => $field . ' • ' . $schedule,
+                'value' => $status,
             ];
         };
-
-        $completedPageItems = $completedCollection
-            ->forPage($this->completedTasksPage, $tasksPerPage)
-            ->map(fn ($t) => $formatTaskRow($t, true))
-            ->values();
-        $pendingPageItems = $pendingCollection
-            ->forPage($this->pendingTasksPage, $tasksPerPage)
-            ->map(fn ($t) => $formatTaskRow($t, false))
-            ->values();
 
         return [
             'title' => 'Raporty dotyczące prac polowych',
@@ -717,26 +466,24 @@ protected function getFieldWorkReport(): array
                 ['label' => 'Liczba przepracowanych motogodzin', 'value' => number_format($workedHours, 1, ',', ' ') . ' mth'],
                 ['label' => 'Stopień realizacji planu prac polowych', 'value' => number_format($completionRate, 1, ',', ' ') . '%'],
             ],
-            'summary_counts' => [
-                'completed' => $completedCount,
-                'pending' => $pendingCount,
-                'total' => $totalPlanCount,
-            ],
-            'completed_tasks' => $completedPageItems->all(),
-            'completed_pagination' => $completedPagination,
-            'pending_tasks' => $pendingPageItems->all(),
-            'pending_pagination' => $pendingPagination,
-            'by_field' => $byField,
-            'by_employee' => $byEmployee,
-            'by_machine' => $byMachine,
-            'columns' => ['Zabieg / Praca', 'Pole i data', 'Status'],
-            'rows' => [],
+            'summary_counts' => ['completed' => $completedCount, 'pending' => $pendingCount, 'total' => $totalCount],
+            'completed_tasks' => collect($completedResult['items'])->map(fn ($task) => $formatTask($task, true))->all(),
+            'completed_pagination' => $completedResult['pagination'],
+            'pending_tasks' => collect($pendingResult['items'])->map(fn ($task) => $formatTask($task, false))->all(),
+            'pending_pagination' => $pendingResult['pagination'],
+            'by_field' => $byFieldResult['items'],
+            'by_field_pagination' => $byFieldResult['pagination'],
+            'by_employee' => $byEmployeeResult['items'],
+            'by_employee_pagination' => $byEmployeeResult['pagination'],
+            'by_machine' => $byMachineResult['items'],
+            'by_machine_pagination' => $byMachineResult['pagination'],
+            'columns' => [], 'rows' => [],
         ];
     }
 
     protected function getFuelAndOperatingCostsReport(): array
     {
-        $fuelLiters = 0;
+        $fuelLiters = 0.0;
         $rows = [];
 
         if (
@@ -746,14 +493,8 @@ protected function getFieldWorkReport(): array
             && Schema::hasColumn('resource_consumptions', 'quantity')
             && Schema::hasColumn('resources', 'type')
         ) {
-            // Łączne zużycie paliwa
             $fuelLiters = (float) DB::table('resource_consumptions')
-                ->join(
-                    'resources',
-                    'resources.id',
-                    '=',
-                    'resource_consumptions.resource_id'
-                )
+                ->join('resources', 'resources.id', '=', 'resource_consumptions.resource_id')
                 ->where('resources.type', 'paliwo')
                 ->sum('resource_consumptions.quantity');
 
@@ -763,84 +504,61 @@ protected function getFieldWorkReport(): array
                 'value' => number_format($fuelLiters, 1, ',', ' ') . ' l',
             ];
 
-            // Pozostałe zasoby, pogrupowane według nazwy
             $otherResources = DB::table('resource_consumptions')
-                ->join(
-                    'resources',
-                    'resources.id',
-                    '=',
-                    'resource_consumptions.resource_id'
-                )
+                ->join('resources', 'resources.id', '=', 'resource_consumptions.resource_id')
                 ->where(function ($query) {
-                    $query->whereNull('resources.type')
-                        ->orWhere('resources.type', '!=', 'paliwo');
+                    $query->whereNull('resources.type')->orWhere('resources.type', '!=', 'paliwo');
                 })
                 ->select(
                     'resources.id as resource_id',
                     'resources.name',
                     'resources.type',
+                    'resources.unit_id',
                     DB::raw('SUM(resource_consumptions.quantity) as total_quantity')
                 )
-                ->groupBy(
-                    'resources.id',
-                    'resources.name',
-                    'resources.type'
-                )
+                ->groupBy('resources.id', 'resources.name', 'resources.type', 'resources.unit_id')
                 ->orderBy('resources.name')
                 ->get();
 
             foreach ($otherResources as $item) {
-                $resource = \App\Models\Resource::with('unit')
-                    ->find($item->resource_id);
-
+                $resource = class_exists(\App\Models\Resource::class)
+                    ? \App\Models\Resource::with('unit')->find($item->resource_id)
+                    : null;
                 $unit = $resource?->unit?->symbol ?? '';
-
                 $rows[] = [
                     'title' => $item->name,
                     'meta' => $item->type ?: 'Inny zasób',
-                    'value' => number_format(
-                        (float) $item->total_quantity,
-                        2,
-                        ',',
-                        ' '
-                    ) . ($unit !== '' ? ' ' . $unit : ''),
+                    'value' => number_format((float) $item->total_quantity, 2, ',', ' ') . ($unit !== '' ? ' ' . $unit : ''),
                 ];
             }
         }
+
+        $otherResourcesCount = max(0, count($rows) - ($fuelLiters > 0 || count($rows) > 0 ? 1 : 0));
+        $rowsResult = $this->paginateReportItems($rows, $this->fuelRowsPage);
+        $this->fuelRowsPage = $rowsResult['pagination']['current_page'];
 
         return [
             'title' => 'Raporty dotyczące paliwa i kosztów eksploatacji',
             'subtitle' => 'Zużycie paliwa oraz pozostałych zasobów gospodarstwa.',
             'metrics' => [
-                [
-                    'label' => 'Zużyte paliwo',
-                    'value' => number_format($fuelLiters, 1, ',', ' ') . ' l',
-                ],
-                [
-                    'label' => 'Liczba innych zasobów',
-                    'value' => (count($rows) > 0 ? count($rows) - 1 : 0) . ' szt.',
-                ],
+                ['label' => 'Zużyte paliwo', 'value' => number_format($fuelLiters, 1, ',', ' ') . ' l'],
+                ['label' => 'Liczba innych zasobów', 'value' => $otherResourcesCount . ' szt.'],
             ],
             'columns' => ['Źródło / Kategoria', 'Rodzaj zasobu', 'Zużyta ilość'],
-            'rows' => $rows,
+            'rows' => $rowsResult['items'],
+            'rows_pagination' => $rowsResult['pagination'],
         ];
     }
-   protected function getMachinesReport(): array
+
+    protected function getMachinesReport(): array
     {
         $total = class_exists(Machine::class) ? Machine::count() : 0;
         $active = 0;
 
         if (class_exists(Machine::class)) {
-            if (Schema::hasColumn('machines', 'status')) {
-                $active = Machine::whereIn('status', [
-                    'active',
-                    'available',
-                    'operational',
-                    'sprawna',
-                ])->count();
-            } else {
-                $active = $total;
-            }
+            $active = Schema::hasColumn('machines', 'status')
+                ? Machine::whereIn('status', ['active', 'available', 'operational', 'sprawna'])->count()
+                : $total;
         }
 
         return [
@@ -850,49 +568,37 @@ protected function getFieldWorkReport(): array
                 ['label' => 'Łącznie jednostek', 'value' => $total],
                 ['label' => 'Gotowe do pracy', 'value' => $active],
                 ['label' => 'Wyłączone / serwis', 'value' => max(0, $total - $active)],
-                [
-                    'label' => 'Dostępność floty',
-                    'value' => $total > 0
-                        ? round(($active / $total) * 100, 1) . '%'
-                        : '0%',
-                ],
+                ['label' => 'Dostępność floty', 'value' => $total > 0 ? round(($active / $total) * 100, 1) . '%' : '0%'],
             ],
-            'columns' => [],
-            'rows' => [],
+            'columns' => [], 'rows' => [],
         ];
     }
 
-   protected function getEmployeesReport(): array
+    protected function getEmployeesReport(): array
     {
-        $employeesCount = 0;
+        $count = 0;
 
         foreach (['employees', 'workers', 'staff'] as $table) {
             if (Schema::hasTable($table)) {
-                $employeesCount = DB::table($table)->count();
+                $count = DB::table($table)->count();
                 break;
             }
         }
 
-        if ($employeesCount === 0 && Schema::hasTable('users')) {
-            $employeesCount = DB::table('users')->count();
+        if ($count === 0 && Schema::hasTable('users')) {
+            $count = DB::table('users')->count();
         }
 
         return [
             'title' => 'Raporty dotyczące pracowników',
             'subtitle' => 'Zatrudnienie, obsada stanowisk oraz przypisanie kadr do prac i działów.',
             'metrics' => [
-                ['label' => 'Liczba osób', 'value' => $employeesCount],
-                ['label' => 'Aktywna kadra', 'value' => $employeesCount],
-                [
-                    'label' => 'Zadania / osoba',
-                    'value' => $employeesCount > 0 && class_exists(Task::class)
-                        ? round(Task::count() / $employeesCount, 1)
-                        : 0,
-                ],
-                ['label' => 'Obsada', 'value' => $employeesCount > 0 ? '100%' : '0%'],
+                ['label' => 'Liczba osób', 'value' => $count],
+                ['label' => 'Aktywna kadra', 'value' => $count],
+                ['label' => 'Zadania / osoba', 'value' => $count > 0 && class_exists(Task::class) ? round(Task::count() / $count, 1) : 0],
+                ['label' => 'Obsada', 'value' => $count > 0 ? '100%' : '0%'],
             ],
-            'columns' => [],
-            'rows' => [],
+            'columns' => [], 'rows' => [],
         ];
     }
 
@@ -900,7 +606,7 @@ protected function getFieldWorkReport(): array
     {
         $fieldsCount = class_exists(Field::class) ? Field::count() : 0;
         $cropsCount = class_exists(Crop::class) ? Crop::count() : 0;
-        $totalArea = 0;
+        $totalArea = 0.0;
 
         if (class_exists(Field::class) && Schema::hasColumn('fields', 'area')) {
             $totalArea = (float) Field::sum('area');
@@ -908,18 +614,21 @@ protected function getFieldWorkReport(): array
             $totalArea = (float) Field::sum('hectares');
         }
 
-        $rows = class_exists(Crop::class)
-            ? Crop::select('name', DB::raw('count(*) as total'))
+        $allRows = class_exists(Crop::class)
+            ? Crop::query()
+                ->select('name', DB::raw('count(*) as total'))
                 ->groupBy('name')
                 ->orderByDesc('total')
-                ->limit(5)
                 ->get()
                 ->map(fn ($crop) => [
                     'title' => $crop->name ?? 'Uprawa',
                     'meta' => 'Struktura zasiewów',
                     'value' => $crop->total . ' szt.',
-                ])->all()
-            : [];
+                ])->values()
+            : collect();
+
+        $rowsResult = $this->paginateReportItems($allRows, $this->cropsRowsPage);
+        $this->cropsRowsPage = $rowsResult['pagination']['current_page'];
 
         return [
             'title' => 'Raporty dotyczące pól i upraw',
@@ -931,7 +640,8 @@ protected function getFieldWorkReport(): array
                 ['label' => 'Śr. pow. pola', 'value' => $fieldsCount > 0 && $totalArea > 0 ? number_format($totalArea / $fieldsCount, 2, ',', ' ') . ' ha' : '0,00 ha'],
             ],
             'columns' => ['Uprawa', 'Kategoria', 'Liczebność'],
-            'rows' => $rows,
+            'rows' => $rowsResult['items'],
+            'rows_pagination' => $rowsResult['pagination'],
         ];
     }
 }

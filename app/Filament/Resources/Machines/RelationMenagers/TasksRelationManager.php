@@ -46,6 +46,22 @@ class TasksRelationManager extends RelationManager
                     ->label('Pole uprawne')
                     ->placeholder('Brak pola'),
 
+                TextEntry::make('task.planned_at')
+                    ->label('Planowane rozpoczęcie')
+                    ->dateTime('Y-m-d H:i'),
+
+                TextEntry::make('task.planned_end_at')
+                    ->label('Planowane zakończenie')
+                    ->dateTime('Y-m-d H:i'),
+
+                TextEntry::make('task.started_at')
+                    ->label('Data rozpoczęcia')
+                    ->dateTime('Y-m-d H:i'),
+
+                TextEntry::make('task.completed_at')
+                    ->label('Data zakończenia')
+                    ->dateTime('Y-m-d H:i'),
+                
                 TextEntry::make('task.status')
                     ->label('Status zadania')
                     ->badge()
@@ -57,18 +73,9 @@ class TasksRelationManager extends RelationManager
                         default => $state,
                     }),
 
-                TextEntry::make('task.planned_at')
-                    ->label('Data planowana')
-                    ->dateTime('Y-m-d H:i'),
-
-                TextEntry::make('task.completed_at')
-                    ->label('Data zakończenia')
-                    ->dateTime('Y-m-d H:i'),
-
                 TextEntry::make('task.description')
                     ->label('Opis / Instrukcja zadania')
-                    ->placeholder('Brak opisu')
-                    ->columnSpanFull(),
+                    ->placeholder('Brak opisu'),
 
                 // --- INFORMACJE Z ZESTAWU ROBOCZEGO (TASK_MACHINE) ---
                 TextEntry::make('tractor.name')
@@ -85,8 +92,7 @@ class TasksRelationManager extends RelationManager
 
                 TextEntry::make('notes')
                     ->label('Uwagi do zestawu / Rola')
-                    ->placeholder('Brak uwag')
-                    ->columnSpanFull(),
+                    ->placeholder('Brak uwag'),
             ]);
     }
 

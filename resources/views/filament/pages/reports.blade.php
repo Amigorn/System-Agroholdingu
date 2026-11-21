@@ -135,6 +135,23 @@
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            min-height: 430px;
+            box-sizing: border-box;
+        }
+
+        .hr-grid-2 .hr-box { min-height: 470px; }
+        .hr-grid-3 .hr-box { min-height: 430px; }
+        .hr-box > .hr-pagination,
+        .hr-box > .hr-pagination-placeholder {
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+        .hr-pagination-placeholder {
+            min-height: 56px;
+            margin-top: auto;
+            flex-shrink: 0;
         }
         .hr-box-head {
             display: flex;
@@ -220,8 +237,15 @@
         }
         .hr-table-wrap {
             overflow-x: auto;
+            min-height: 300px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hr-table-wrap + .hr-pagination,
+        .hr-table-wrap + .hr-pagination-placeholder {
+            min-height: 56px;
+            box-sizing: border-box;
         }
         .hr-table {
             width: 100%;
@@ -360,7 +384,7 @@
                                     @endforeach
 
                                     @php $completedPagination = $section['completed_pagination'] ?? []; @endphp
-                                    @if (($completedPagination['last_page'] ?? 1) > 1)
+                                    @if (! empty($section['completed_tasks']))
                                         <div class="hr-pagination">
                                             <div class="hr-pagination-info">
                                                 Wyświetlanie <strong>{{ $completedPagination['from'] }}</strong>–<strong>{{ $completedPagination['to'] }}</strong>
@@ -375,6 +399,7 @@
                                     @endif
                                 @else
                                     <p class="hr-empty">Brak wykonanych prac w wybranym okresie.</p>
+                                    <div class="hr-pagination-placeholder"></div>
                                 @endif
                             </div>
 
@@ -398,7 +423,7 @@
                                     @endforeach
 
                                     @php $pendingPagination = $section['pending_pagination'] ?? []; @endphp
-                                    @if (($pendingPagination['last_page'] ?? 1) > 1)
+                                    @if (! empty($section['pending_tasks']))
                                         <div class="hr-pagination">
                                             <div class="hr-pagination-info">
                                                 Wyświetlanie <strong>{{ $pendingPagination['from'] }}</strong>–<strong>{{ $pendingPagination['to'] }}</strong>
@@ -413,6 +438,7 @@
                                     @endif
                                 @else
                                     <p class="hr-empty">Brak niewykonanych prac w wybranym okresie.</p>
+                                    <div class="hr-pagination-placeholder"></div>
                                 @endif
                             </div>
                         </div>
@@ -432,8 +458,32 @@
                                             <div class="hr-subcard-sub">{{ $item['treatments'] }}</div>
                                         </div>
                                     @endforeach
+                                
+                                @php
+                                    $by_fieldPagination = $section['by_field_pagination'] ?? [];
+                                    $by_fieldCurrent = $by_fieldPagination['current_page'] ?? 1;
+                                    $by_fieldLast = $by_fieldPagination['last_page'] ?? 1;
+                                @endphp
+                                <div class="hr-pagination">
+                                    <div class="hr-pagination-info">
+                                        Wyświetlanie <strong>{{ $by_fieldPagination['from'] ?? 0 }}</strong>–<strong>{{ $by_fieldPagination['to'] ?? 0 }}</strong>
+                                        z <strong>{{ $by_fieldPagination['total'] ?? 0 }}</strong> pól
+                                    </div>
+                                    <div class="hr-pagination-buttons">
+                                        <button type="button"
+                                            wire:click="$set('byFieldPage', {{ max(1, $by_fieldCurrent - 1) }})"
+                                            @disabled($by_fieldCurrent <= 1)
+                                            class="hr-page-btn">&laquo; Poprzednia</button>
+                                        <span class="hr-page-number">{{ $by_fieldCurrent }} / {{ $by_fieldLast }}</span>
+                                        <button type="button"
+                                            wire:click="$set('byFieldPage', {{ min($by_fieldLast, $by_fieldCurrent + 1) }})"
+                                            @disabled($by_fieldCurrent >= $by_fieldLast)
+                                            class="hr-page-btn">Następna &raquo;</button>
+                                    </div>
+                                </div>
                                 @else
                                     <p class="hr-empty">Brak danych według pól.</p>
+                                    <div class="hr-pagination-placeholder"></div>
                                 @endif
                             </div>
 
@@ -451,8 +501,32 @@
                                             <div class="hr-subcard-sub">{{ $item['kinds'] }}</div>
                                         </div>
                                     @endforeach
+                                
+                                @php
+                                    $by_employeePagination = $section['by_employee_pagination'] ?? [];
+                                    $by_employeeCurrent = $by_employeePagination['current_page'] ?? 1;
+                                    $by_employeeLast = $by_employeePagination['last_page'] ?? 1;
+                                @endphp
+                                <div class="hr-pagination">
+                                    <div class="hr-pagination-info">
+                                        Wyświetlanie <strong>{{ $by_employeePagination['from'] ?? 0 }}</strong>–<strong>{{ $by_employeePagination['to'] ?? 0 }}</strong>
+                                        z <strong>{{ $by_employeePagination['total'] ?? 0 }}</strong> pracowników
+                                    </div>
+                                    <div class="hr-pagination-buttons">
+                                        <button type="button"
+                                            wire:click="$set('byEmployeePage', {{ max(1, $by_employeeCurrent - 1) }})"
+                                            @disabled($by_employeeCurrent <= 1)
+                                            class="hr-page-btn">&laquo; Poprzednia</button>
+                                        <span class="hr-page-number">{{ $by_employeeCurrent }} / {{ $by_employeeLast }}</span>
+                                        <button type="button"
+                                            wire:click="$set('byEmployeePage', {{ min($by_employeeLast, $by_employeeCurrent + 1) }})"
+                                            @disabled($by_employeeCurrent >= $by_employeeLast)
+                                            class="hr-page-btn">Następna &raquo;</button>
+                                    </div>
+                                </div>
                                 @else
                                     <p class="hr-empty">Brak danych według pracowników.</p>
+                                    <div class="hr-pagination-placeholder"></div>
                                 @endif
                             </div>
 
@@ -470,8 +544,32 @@
                                             <div class="hr-subcard-sub">Liczba zabiegów: {{ $item['tasks_count'] }}</div>
                                         </div>
                                     @endforeach
+                                
+                                @php
+                                    $by_machinePagination = $section['by_machine_pagination'] ?? [];
+                                    $by_machineCurrent = $by_machinePagination['current_page'] ?? 1;
+                                    $by_machineLast = $by_machinePagination['last_page'] ?? 1;
+                                @endphp
+                                <div class="hr-pagination">
+                                    <div class="hr-pagination-info">
+                                        Wyświetlanie <strong>{{ $by_machinePagination['from'] ?? 0 }}</strong>–<strong>{{ $by_machinePagination['to'] ?? 0 }}</strong>
+                                        z <strong>{{ $by_machinePagination['total'] ?? 0 }}</strong> maszyn
+                                    </div>
+                                    <div class="hr-pagination-buttons">
+                                        <button type="button"
+                                            wire:click="$set('byMachinePage', {{ max(1, $by_machineCurrent - 1) }})"
+                                            @disabled($by_machineCurrent <= 1)
+                                            class="hr-page-btn">&laquo; Poprzednia</button>
+                                        <span class="hr-page-number">{{ $by_machineCurrent }} / {{ $by_machineLast }}</span>
+                                        <button type="button"
+                                            wire:click="$set('byMachinePage', {{ min($by_machineLast, $by_machineCurrent + 1) }})"
+                                            @disabled($by_machineCurrent >= $by_machineLast)
+                                            class="hr-page-btn">Następna &raquo;</button>
+                                    </div>
+                                </div>
                                 @else
                                     <p class="hr-empty">Brak danych według maszyn.</p>
+                                    <div class="hr-pagination-placeholder"></div>
                                 @endif
                             </div>
                         </div>
@@ -508,8 +606,36 @@
                                     </tbody>
                                 </table>
                             </div>
+                            @if (! empty($section['rows_pagination']))
+                                @php
+                                    $rowsPagination = $section['rows_pagination'];
+                                    $rowsPageProperty = $key === 'fuel_costs' ? 'fuelRowsPage' : 'cropsRowsPage';
+                                @endphp
+                                <div class="hr-pagination">
+                                    <div class="hr-pagination-info">
+                                        Wyświetlanie <strong>{{ $rowsPagination['from'] ?? 0 }}</strong>–<strong>{{ $rowsPagination['to'] ?? 0 }}</strong>
+                                        z <strong>{{ $rowsPagination['total'] ?? 0 }}</strong> rekordów
+                                    </div>
+                                    <div class="hr-pagination-buttons">
+                                        <button type="button"
+                                            wire:click="$set('{{ $rowsPageProperty }}', {{ max(1, ($rowsPagination['current_page'] ?? 1) - 1) }})"
+                                            @disabled(($rowsPagination['current_page'] ?? 1) <= 1)
+                                            class="hr-page-btn">&laquo; Poprzednia</button>
+                                        <span class="hr-page-number">{{ $rowsPagination['current_page'] ?? 1 }} / {{ $rowsPagination['last_page'] ?? 1 }}</span>
+                                        <button type="button"
+                                            wire:click="$set('{{ $rowsPageProperty }}', {{ min(($rowsPagination['last_page'] ?? 1), ($rowsPagination['current_page'] ?? 1) + 1) }})"
+                                            @disabled(($rowsPagination['current_page'] ?? 1) >= ($rowsPagination['last_page'] ?? 1))
+                                            class="hr-page-btn">Następna &raquo;</button>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="hr-pagination-placeholder"></div>
+                            @endif
                         @else
-                            <p class="hr-empty">Brak zarejestrowanych rekordów dla tej kategorii raportowej.</p>
+                            @if (! in_array($key, ['employees', 'machines'], true))
+                                <p class="hr-empty">Brak zarejestrowanych rekordów dla tej kategorii raportowej.</p>
+                            @endif
+                            <div class="hr-pagination-placeholder"></div>
                         @endif
                     @endif
                 </x-filament::section>
