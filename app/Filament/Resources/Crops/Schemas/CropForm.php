@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\Crops\Schemas;
 
+use App\Models\Crop;
+use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
 class CropForm
 {
@@ -24,15 +28,40 @@ class CropForm
                     ->relationship('season', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->live(),
 
                 Select::make('field_id')
                     ->label('Pole uprawne')
                     ->relationship('field', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
-                
+                    ->preload()
+                    ->live()
+                    ->rule(function (Get $get, ?Model $record): Closure {
+                        return function (string $attribute, mixed $value, Closure $fail) use ($get, $record): void {
+                            if (blank($value)) {
+                                return;
+                            }
+
+                            $query = Crop::query()
+                                ->where('field_id', $value);
+
+                            $seasonId = $get('season_id');
+                            if (filled($seasonId)) {
+                                $query->where('season_id', $seasonId);
+                            }
+
+                            if ($record?->getKey()) {
+                                $query->whereKeyNot($record->getKey());
+                            }
+
+                            if ($query->exists()) {
+                                $fail('To pole ma już przypisaną uprawę.');
+                            }
+                        };
+                    }),
+
                 DatePicker::make('sowing_date')
                     ->label('Data siewu'),
 

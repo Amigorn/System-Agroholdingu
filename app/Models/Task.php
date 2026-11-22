@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -42,12 +41,5 @@ class Task extends Model
     public function resourceConsumptions(): HasMany
     {
         return $this->hasMany(ResourceConsumption::class, 'task_id');
-    }
-
-    public function machines(): BelongsToMany
-    {
-        return $this->belongsToMany(Machine::class, 'machine_task')
-                    ->withPivot('quantity')
-                    ->withTimestamps();
     }
 }

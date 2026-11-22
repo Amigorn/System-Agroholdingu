@@ -3,15 +3,27 @@
 namespace App\Filament\Resources\Crops\Tables;
 
 use App\Filament\Resources\Crops\CropResource;
+use App\Models\Season;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class CropsTable
 {
+    protected static function resolveLatestSeasonId(): ?int
+    {
+        $seasonId = Season::query()
+            ->orderByDesc('year')
+            ->orderByDesc('id')
+            ->value('id');
+
+        return $seasonId !== null ? (int) $seasonId : null;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -21,7 +33,6 @@ class CropsTable
             )
             ->defaultSort('sowing_date', 'desc')
             ->columns([
-
                 TextColumn::make('name')
                     ->label('Nazwa')
                     ->searchable()
@@ -52,7 +63,7 @@ class CropsTable
                             ->leftJoin('seasons', 'crops.season_id', '=', 'seasons.id')
                             ->orderBy('seasons.name', $direction);
                     }),
-                    
+
                 TextColumn::make('sowing_date')
                     ->label('Data siewu')
                     ->date('d.m.Y')
@@ -72,7 +83,17 @@ class CropsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('season_id')
+                    ->label('Sezon uprawowy')
+                    ->options(fn (): array => Season::query()
+                        ->orderByDesc('year')
+                        ->orderByDesc('id')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->default(fn (): ?int => static::resolveLatestSeasonId())
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
             ])
             ->recordActions([
                 Action::make('edit')
