@@ -9,6 +9,16 @@ class MachineSeeder extends Seeder
 {
     public function run(): void
     {
-        Machine::factory(50)->create();
+        $factory = Machine::factory();
+
+        $tractors = collect(range(1, 15))
+            ->map(fn () => $factory->tractor()->raw());
+
+        $others = collect(range(1, 35))
+            ->map(fn () => $factory->raw());
+
+        $tractors->concat($others)
+            ->shuffle()
+            ->each(fn (array $attributes) => Machine::query()->create($attributes));
     }
 }

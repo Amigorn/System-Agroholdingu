@@ -84,18 +84,31 @@ class TaskForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('type')
+            Select::make('type')
                 ->label('Rodzaj zabiegu')
-                ->datalist([
-                    'Nawożenie',
-                    'Oprysk',
-                    'Orka',
-                    'Siew',
+                ->options([
+                    'Orka' => 'Orka',
+                    'Zbiór' => 'Zbiór',
+                    'Siew' => 'Siew',
+                    'Oprysk' => 'Oprysk',
+                    'Nawożenie' => 'Nawożenie',
+                    'Prasowanie słomy' => 'Prasowanie słomy',
+                    'Koszenie' => 'Koszenie',
+                    'Oprysk herbicydowy' => 'Oprysk herbicydowy',
+                    'Pielenie mechaniczne' => 'Pielenie mechaniczne',
+                    'Bronowanie' => 'Bronowanie',
+                    'Talerzowanie' => 'Talerzowanie',
+                    'Sadzenie' => 'Sadzenie',
+                    'Wapnowanie' => 'Wapnowanie',
+                    'Nawożenie mineralne' => 'Nawożenie mineralne',
+                    'Nawożenie azotowe' => 'Nawożenie azotowe',
+                    'Nawożenie dolistne' => 'Nawożenie dolistne',
                 ])
+                ->searchable()
+                ->preload()
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => static::syncCropSelection($get, $set))
                 ->required(),
-
             Select::make('field_id')
                 ->label('Pole uprawne')
                 ->relationship('field', 'name')
