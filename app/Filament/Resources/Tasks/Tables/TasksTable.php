@@ -325,10 +325,10 @@ class TasksTable
                             $releaseMachineIfFree($tm->machine_id ? (int) $tm->machine_id : null);
                         }
 
-                        $body = 'Zadanie zakończone, paliwo i surowce rozliczone!';
+                        $body = 'Paliwo i surowce rozliczone!';
                             if (static::isSowingTask($record) && ! empty($record->field_id)) {
                                 $fieldName = $record->field?->name ?? ("Pole #{$record->field_id}");
-                                $body .= " Zaktualizowano datę siewu dla pola „{$fieldName}” na {$completedAt->format('d.m.Y')}.";
+                                $body .= " Zaktualizowano datę siewu dla pola „{$fieldName}”.";
                             }
 
                         Notification::make()

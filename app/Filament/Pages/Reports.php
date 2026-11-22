@@ -104,6 +104,16 @@ class Reports extends Page
         ], true) || ! empty($task->completed_at);
     }
 
+    protected function formatTaskStatusLabel(?string $status): string
+{
+    return match (mb_strtolower(trim((string) $status))) {
+        'planned', 'zaplanowane' => 'Zaplanowane',
+        'in_progress', 'in progress', 'w trakcie', 'w realizacji' => 'W trakcie',
+        'completed', 'done', 'finished', 'ukończone', 'wykonane', 'zakończone' => 'Zakończone',
+        default => filled($status) ? (string) $status : 'Zaplanowane',
+    };
+}
+
     protected function extractTaskArea(object $task): float
     {
         foreach (['area', 'hectares', 'worked_area', 'treated_area'] as $column) {
@@ -125,23 +135,6 @@ class Reports extends Page
 
     protected function extractTaskHours(object $task): float
     {
-        if ($task->relationLoaded('resourceConsumptions') && $task->resourceConsumptions instanceof Collection) {
-            $total = 0.0;
-
-            foreach ($task->resourceConsumptions as $consumption) {
-                foreach (['hours', 'engine_hours', 'mth', 'moto_hours', 'work_hours'] as $column) {
-                    if (isset($consumption->{$column}) && is_numeric($consumption->{$column}) && $consumption->{$column} > 0) {
-                        $total += (float) $consumption->{$column};
-                        break;
-                    }
-                }
-            }
-
-            if ($total > 0) {
-                return round($total, 2);
-            }
-        }
-
         if (! empty($task->started_at) && ! empty($task->completed_at)) {
             $start = Carbon::parse($task->started_at);
             $end = Carbon::parse($task->completed_at);
@@ -433,7 +426,7 @@ class Reports extends Page
         $this->byEmployeePage = $byEmployeeResult['pagination']['current_page'];
         $this->byMachinePage = $byMachineResult['pagination']['current_page'];
 
-        $formatTask = function ($task, bool $isCompleted) {
+       $formatTask = function ($task, bool $isCompleted) {
             $title = $task->type ?: (\Illuminate\Support\Str::limit($task->description ?? '', 45) ?: ('Zabieg #' . $task->id));
             $field = ($task->relationLoaded('field') && $task->field)
                 ? ($task->field->name ?? ('Pole #' . $task->field->id)) : 'Ogólne / brak pola';
@@ -445,7 +438,11 @@ class Reports extends Page
             } else {
                 $date = $task->planned_at ?? $task->created_at;
                 $schedule = $date ? Carbon::parse($date)->format('d.m.Y H:i') : '-';
-                $status = $task->status ?: 'Zaplanowane';
+                $status = match (mb_strtolower(trim((string) ($task->status ?? '')))) {
+                    'in_progress', 'in progress', 'w trakcie', 'w realizacji' => 'W trakcie',
+                    'planned', 'zaplanowane', '' => 'Zaplanowane',
+                    default => (string) $task->status,
+                };
             }
 
             return [
