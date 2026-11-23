@@ -134,9 +134,7 @@ class InvoicesTable
                     ->action(fn ($record) => $record->delete()),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                    //
             ]);
     }
 }

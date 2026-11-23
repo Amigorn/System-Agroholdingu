@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Crops\Schemas;
 
 use App\Models\Crop;
+use App\Models\Season;
 use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -10,6 +11,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class CropForm
@@ -25,7 +27,12 @@ class CropForm
 
                 Select::make('season_id')
                     ->label('Sezon uprawowy')
-                    ->relationship('season', 'name')
+                    ->relationship(
+                        name: 'season',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query): Builder => $query->orderByDesc('id'),
+                    )
+                    ->default(fn (): ?int => Season::query()->orderByDesc('id')->value('id'))
                     ->required()
                     ->searchable()
                     ->preload()

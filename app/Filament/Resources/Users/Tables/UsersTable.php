@@ -118,7 +118,6 @@ class UsersTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->label('Usuń wybrane'),
                     RestoreBulkAction::make()->label('Przywróć wybrane'),
                     ForceDeleteBulkAction::make()->label('Usuń trwale wybrane'),
                 ])->label('Akcje masowe'),

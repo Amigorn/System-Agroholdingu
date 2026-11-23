@@ -2,14 +2,14 @@
 
 namespace App\Filament\Resources\Invoices\Schemas;
 
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Repeater;
-use Filament\Schemas\Schema;
 use App\Models\Product;
 use App\Models\UnitOfMeasure;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 
 class InvoiceForm
 {
@@ -48,9 +48,11 @@ class InvoiceForm
                         foreach ($items as $uuid => $item) {
                             if (!empty($item['product_id'])) {
                                 $product = Product::find($item['product_id']);
-                                $unitPrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $unit = !empty($item['unit_id']) ? UnitOfMeasure::find($item['unit_id']) : null;
+                                $basePrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $unitPrice = self::calculateUnitPrice($basePrice, $unit);
                                 $quantity = (int) ($item['quantity'] ?? 1);
-                                
+
                                 $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
 
                                 $set("items.{$uuid}.unit_price", number_format($unitPrice, 2, '.', ''));
@@ -112,6 +114,7 @@ class InvoiceForm
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 if (!$state) {
+                                    $set('unit_id', null);
                                     $set('unit_price', '0.00');
                                     $set('total', '0.00');
                                     self::updateInvoiceTotal($set, $get);
@@ -121,9 +124,23 @@ class InvoiceForm
                                 $issueDate = $get('../../issue_date') ?? now();
                                 $product = Product::find($state);
 
-                                $unitPrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $defaultUnitId = $product?->unit_id
+                                    ?? $product?->unit_of_measure_id
+                                    ?? $product?->unit?->id
+                                    ?? $product?->unitOfMeasure?->id;
+
+                                $unit = null;
+                                if ($defaultUnitId) {
+                                    $set('unit_id', $defaultUnitId);
+                                    $unit = UnitOfMeasure::find($defaultUnitId);
+                                } elseif (!empty($get('unit_id'))) {
+                                    $unit = UnitOfMeasure::find($get('unit_id'));
+                                }
+
+                                $basePrice = $product ? $product->getPriceForDate($issueDate) : 0;
+                                $unitPrice = self::calculateUnitPrice($basePrice, $unit);
                                 $quantity = (int) ($get('quantity') ?? 1);
-                                
+
                                 $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
 
                                 $set('unit_price', number_format($unitPrice, 2, '.', ''));
@@ -148,9 +165,9 @@ class InvoiceForm
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 $quantity = (int) $state;
                                 $unitPrice = (float) $get('unit_price');
-                                
+
                                 $itemTotal = number_format($quantity * $unitPrice, 2, '.', '');
-                                
+
                                 $set('total', $itemTotal);
                                 self::updateInvoiceTotal($set, $get);
                             })
@@ -164,7 +181,6 @@ class InvoiceForm
                             ->preload()
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                // Pobieramy wybraną jednostkę oraz produkt
                                 $unit = UnitOfMeasure::find($state);
                                 $productId = $get('product_id');
                                 $issueDate = $get('../../issue_date') ?? now();
@@ -172,15 +188,8 @@ class InvoiceForm
 
                                 if ($productId) {
                                     $product = Product::find($productId);
-                                    // Pobieramy bazową cenę z cennika
                                     $basePrice = $product ? $product->getPriceForDate($issueDate) : 0;
-
-                                    $symbol = $unit ? strtolower($unit->symbol) : '';
-
-                                    $unitPrice = $basePrice;
-                                    if ($symbol === 'kg' || $symbol === 'g') {
-                                        $unitPrice = $basePrice / 1000; 
-                                    }
+                                    $unitPrice = self::calculateUnitPrice($basePrice, $unit);
 
                                     $formattedPrice = number_format($unitPrice, 2, '.', '');
                                     $set('unit_price', $formattedPrice);
@@ -269,10 +278,21 @@ class InvoiceForm
             ]);
     }
 
+    protected static function calculateUnitPrice(float $basePrice, ?UnitOfMeasure $unit): float
+    {
+        $symbol = $unit ? strtolower((string) $unit->symbol) : '';
+
+        if ($symbol === 'kg' || $symbol === 'g') {
+            return $basePrice / 1000;
+        }
+
+        return $basePrice;
+    }
+
     protected static function updateInvoiceTotal(callable $set, callable $get): void
     {
         $items = $get('../../items') ?? [];
-        
+
         $total = 0;
         foreach ($items as $item) {
             $total += (float) ($item['total'] ?? 0);

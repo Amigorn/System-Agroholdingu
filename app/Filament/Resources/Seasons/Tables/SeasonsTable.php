@@ -62,9 +62,7 @@ class SeasonsTable
                     ->action(fn ($record) => $record->delete()),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                    //
             ]);
     }
 }
