@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Machines\Tables;
 
 use App\Filament\Resources\Machines\MachineResource;
+use App\Filament\Resources\Tasks\TaskResource;
 use App\Models\Machine;
 use App\Models\TaskMachine;
 use Filament\Actions\Action;
@@ -10,6 +11,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 
 class MachinesTable
 {
@@ -67,6 +69,17 @@ class MachinesTable
                     ->native(false),
             ])
             ->recordActions([
+                Action::make('inspectTasks')
+                    ->icon('heroicon-m-magnifying-glass')
+                    ->button()
+                    ->label(false)
+                    ->color('info')
+                    ->visible(fn (Machine $record): bool => self::hasActiveOrPlannedTasks($record))
+                    ->modalHeading(fn (Machine $record): string => "Przypisania maszyny: {$record->name}")
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Zamknij')
+                    ->modalContent(fn (Machine $record): View => self::makeAssignedTasksView($record)),
+
                 Action::make('edit')
                     ->icon('heroicon-m-pencil-square')
                     ->button()
@@ -112,6 +125,40 @@ class MachinesTable
             ->toolbarActions([
                 //
             ]);
+    }
+
+    protected static function makeAssignedTasksView(Machine $machine): View
+    {
+        $assignments = TaskMachine::query()
+            ->with(['task.field', 'user'])
+            ->where(function ($query) use ($machine): void {
+                $query->where('machine_id', $machine->getKey())
+                    ->orWhere('tractor_id', $machine->getKey());
+            })
+            ->whereHas('task', function ($query): void {
+                $query->whereIn('status', ['in_progress', 'planned']);
+            })
+            ->get()
+            ->map(function (TaskMachine $assignment): array {
+                $task = $assignment->task;
+                $operatorName = $assignment->user
+                    ? (trim(($assignment->user->first_name ?? '') . ' ' . ($assignment->user->last_name ?? '')) ?: ($assignment->user->email ?? 'Brak'))
+                    : 'Brak';
+
+                return [
+                    'task_type' => $task?->type ?? 'Zadanie',
+                    'field_name' => $task?->field?->name ?? 'Brak pola',
+                    'status' => $task?->status ?? '',
+                    'operator_name' => $operatorName,
+                    'task_url' => $task ? TaskResource::getUrl('edit', ['record' => $task]) : null,
+                ];
+            })
+            ->filter(fn (array $item): bool => filled($item['task_url']))
+            ->values();
+
+        return view('filament.modals.machine-assignments', [
+            'assignments' => $assignments,
+        ]);
     }
 
     protected static function hasActiveOrPlannedTasks(Machine $machine): bool
