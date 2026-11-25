@@ -2,18 +2,39 @@
 
 namespace App\Filament\Resources\Fields\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\Action;
-use App\Models\Field;
 use App\Filament\Resources\Fields\FieldResource;
-use Filament\Actions\EditAction;
+use App\Models\Crop;
+use App\Models\Field;
+use App\Models\Task;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class FieldsTable
 {
+    protected static function hasLinkedRecords(Field $field): bool
+    {
+        $hasCrops = method_exists($field, 'crops')
+            ? $field->crops()->exists()
+            : (class_exists(Crop::class) && Crop::query()->where('field_id', $field->getKey())->exists());
+
+        if ($hasCrops) {
+            return true;
+        }
+
+        if (method_exists($field, 'tasks')) {
+            return $field->tasks()->exists();
+        }
+
+        if (class_exists(Task::class)) {
+            return Task::query()->where('field_id', $field->getKey())->exists();
+        }
+
+        return false;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table->columns([
@@ -41,9 +62,9 @@ class FieldsTable
                 ->dateTime('d.m.Y H:i')
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: true),
-            ])
+        ])
             ->filters([
-                 SelectFilter::make('soil_type')
+                SelectFilter::make('soil_type')
                     ->label('Typ Gleby')
                     ->options(fn () => Field::distinct()->pluck('soil_type', 'soil_type')->toArray())
                     ->native(false),
@@ -55,8 +76,8 @@ class FieldsTable
                     ->label(false)
                     ->color('warning')
                     ->url(fn ($record) => FieldResource::getUrl('edit', [
-                    'record' => $record,
-                ])),
+                        'record' => $record,
+                    ])),
                 Action::make('delete')
                     ->icon('heroicon-m-trash')
                     ->button()
@@ -66,10 +87,21 @@ class FieldsTable
                     ->modalHeading('Usuń Pole')
                     ->modalDescription('Czy na pewno chcesz to zrobić?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(function (Action $action, Field $record): void {
+                        if (static::hasLinkedRecords($record)) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Nie można usunąć pola')
+                                ->body('To pole ma przypisane uprawy lub zadania.')
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
+                    ->action(fn (Field $record) => $record->delete()),
             ])
             ->toolbarActions([
-                    //
+                //
             ]);
     }
 }

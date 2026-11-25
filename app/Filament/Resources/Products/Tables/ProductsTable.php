@@ -3,15 +3,42 @@
 namespace App\Filament\Resources\Products\Tables;
 
 use App\Filament\Resources\Products\ProductResource;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use App\Models\Harvest;
+use App\Models\InvoiceItem;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Schema;
 
 class ProductsTable
 {
+    protected static function shouldBlockProductDeletion($record): bool
+    {
+        $productId = $record->getKey();
+
+        $inInvoiceItems = class_exists(InvoiceItem::class)
+            && Schema::hasTable('invoice_items')
+            && InvoiceItem::query()->where('product_id', $productId)->exists();
+
+        $inHarvests = class_exists(Harvest::class)
+            && Schema::hasTable('harvests')
+            && Harvest::query()->where('product_id', $productId)->exists();
+
+        if ($inInvoiceItems || $inHarvests) {
+            Notification::make()
+                ->danger()
+                ->title('Nie można usunąć produktu')
+                ->body('Ten produkt jest powiązany z fakturami lub zbiorami w systemie.')
+                ->send();
+
+            return true;
+        }
+
+        return false;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -79,7 +106,20 @@ class ProductsTable
                     ->modalHeading('Usuń produkt')
                     ->modalDescription('Czy na pewno chcesz usunąć ten produkt?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(function ($record, Action $action): void {
+                        if (static::shouldBlockProductDeletion($record)) {
+                            $action->halt();
+                        }
+                    })
+                    ->action(function ($record, Action $action): void {
+                        if (static::shouldBlockProductDeletion($record)) {
+                            $action->halt();
+
+                            return;
+                        }
+
+                        $record->delete();
+                    }),
             ])
             ->toolbarActions([
                     //

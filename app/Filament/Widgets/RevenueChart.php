@@ -24,23 +24,6 @@ class RevenueChart extends ChartWidget
             ->orderBy('month')
             ->get();
 
-        if ($revenues->isEmpty()) {
-            return [
-                'datasets' => [
-                    [
-                        'label' => 'Przychód',
-                        'data' => [12000, 14800, 13200, 16100, 15300, 17900, 19200, 21400, 18900, 22100, 24800, 26200],
-                        'borderColor' => '#eab308',
-                        'pointBackgroundColor' => '#facc15',
-                        'backgroundColor' => 'rgba(234, 179, 8, 0.12)',
-                        'fill' => true,
-                        'tension' => 0.15,
-                    ],
-                ],
-                'labels' => ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'],
-            ];
-        }
-
         return [
             'datasets' => [
                 [

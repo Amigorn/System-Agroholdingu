@@ -2,18 +2,39 @@
 
 namespace App\Filament\Resources\Resources\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use App\Filament\Resources\Resources\ResourceResource;
 use App\Models\Resource;
+use App\Models\ResourceConsumption;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Schema;
 
 class ResourcesTable
 {
+    protected static function shouldBlockResourceDeletion($record): bool
+    {
+        $resourceId = $record->getKey();
+
+        $hasConsumptions = class_exists(ResourceConsumption::class)
+            && Schema::hasTable('resource_consumptions')
+            && ResourceConsumption::query()->where('resource_id', $resourceId)->exists();
+
+        if ($hasConsumptions) {
+            Notification::make()
+                ->danger()
+                ->title('Nie można usunąć zasobu')
+                ->body('Ten zasób ma już zarejestrowane zużycie w zadaniach.')
+                ->send();
+
+            return true;
+        }
+
+        return false;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -22,7 +43,7 @@ class ResourcesTable
                     ->label('Nazwa zasobu')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('type')
                     ->label('Typ zasobu')
                     ->sortable()
@@ -38,7 +59,7 @@ class ResourcesTable
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 TextColumn::make('updated_at')
                     ->label('Zaktualizowano')
                     ->dateTime('d.m.Y H:i')
@@ -58,8 +79,9 @@ class ResourcesTable
                     ->label(false)
                     ->color('warning')
                     ->url(fn ($record) => ResourceResource::getUrl('edit', [
-                    'record' => $record,
-                ])),
+                        'record' => $record,
+                    ])),
+
                 Action::make('delete')
                     ->icon('heroicon-m-trash')
                     ->button()
@@ -69,7 +91,20 @@ class ResourcesTable
                     ->modalHeading('Usuń Zasób')
                     ->modalDescription('Czy na pewno chcesz to zrobić?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(function ($record, Action $action): void {
+                        if (static::shouldBlockResourceDeletion($record)) {
+                            $action->halt();
+                        }
+                    })
+                    ->action(function ($record, Action $action): void {
+                        if (static::shouldBlockResourceDeletion($record)) {
+                            $action->halt();
+
+                            return;
+                        }
+
+                        $record->delete();
+                    }),
             ])
             ->toolbarActions([
                     //

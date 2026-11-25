@@ -3,13 +3,16 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Models\Task;
+use App\Models\TaskMachine;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -17,6 +20,54 @@ use Filament\Tables\Table;
 
 class UsersTable
 {
+    protected static function hasLinkedRecords(User $user): bool
+    {
+        $userId = $user->getKey();
+
+        $inTaskMachines = TaskMachine::query()
+            ->where('user_id', $userId)
+            ->exists();
+
+        if ($inTaskMachines) {
+            return true;
+        }
+
+        return Task::query()
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    protected static function blockIfRestricted(Action $action, User $record, bool $isForceDelete = false): bool
+    {
+        $currentUserId = auth()->id();
+
+        if ($currentUserId !== null && (string) $record->getKey() === (string) $currentUserId) {
+            Notification::make()
+                ->danger()
+                ->title($isForceDelete ? 'Nie można trwale usunąć konta' : 'Nie można usunąć konta')
+                ->body('Nie możesz usunąć aktualnie zalogowanego użytkownika.')
+                ->send();
+
+            $action->halt();
+
+            return true;
+        }
+
+        if (static::hasLinkedRecords($record)) {
+            Notification::make()
+                ->danger()
+                ->title($isForceDelete ? 'Nie można trwale usunąć użytkownika' : 'Nie można usunąć użytkownika')
+                ->body('Ten użytkownik jest przypisany do zestawu roboczego w zadaniu.')
+                ->send();
+
+            $action->halt();
+
+            return true;
+        }
+
+        return false;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -102,7 +153,14 @@ class UsersTable
                     ->modalDescription('Czy na pewno chcesz przenieść tego użytkownika do kosza?')
                     ->modalSubmitActionLabel('Tak, usuń')
                     ->visible(fn ($record) => ! $record->trashed())
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(fn (Action $action, User $record) => static::blockIfRestricted($action, $record, false))
+                    ->action(function (Action $action, User $record): void {
+                        if (static::blockIfRestricted($action, $record, false)) {
+                            return;
+                        }
+
+                        $record->delete();
+                    }),
 
                 // Przywrócenie z kosza gotową akcją Filamenta
                 RestoreAction::make()
@@ -110,11 +168,19 @@ class UsersTable
                     ->button()
                     ->label(false),
 
-                // Trwałe usunięcie z bazy gotową akcją Filamenta
+                // Trwałe usunięcie z bazy
                 ForceDeleteAction::make()
                     ->icon('heroicon-m-x-circle')
                     ->button()
-                    ->label(false),
+                    ->label(false)
+                    ->before(fn (Action $action, User $record) => static::blockIfRestricted($action, $record, true))
+                    ->action(function (Action $action, User $record): void {
+                        if (static::blockIfRestricted($action, $record, true)) {
+                            return;
+                        }
+
+                        $record->forceDelete();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

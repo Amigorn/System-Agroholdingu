@@ -46,6 +46,50 @@ class TasksTable
         }
     }
 
+    protected static function shouldBlockTaskDeletion($record): bool
+    {
+        if ($record->status === 'completed') {
+            Notification::make()
+                ->danger()
+                ->title('Nie można usunąć zadania')
+                ->body('Zakończone zadanie nie może zostać usunięte.')
+                ->send();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    protected static function releaseMachinesAfterTaskDelete($record): void
+    {
+        $record->loadMissing('taskMachines');
+
+        $releaseMachineIfFree = function (?int $machineId) use ($record): void {
+            if (! $machineId) {
+                return;
+            }
+
+            $stillInUse = TaskMachine::query()
+                ->where(function (Builder $q) use ($machineId) {
+                    $q->where('tractor_id', $machineId)
+                        ->orWhere('machine_id', $machineId);
+                })
+                ->where('task_id', '!=', $record->id)
+                ->whereHas('task', fn (Builder $tq) => $tq->where('status', 'in_progress'))
+                ->exists();
+
+            if (! $stillInUse) {
+                Machine::whereKey($machineId)->update(['status' => 'available']);
+            }
+        };
+
+        foreach ($record->taskMachines as $tm) {
+            $releaseMachineIfFree($tm->tractor_id ? (int) $tm->tractor_id : null);
+            $releaseMachineIfFree($tm->machine_id ? (int) $tm->machine_id : null);
+        }
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -356,7 +400,21 @@ class TasksTable
                     ->modalHeading('Usuń Zadanie')
                     ->modalDescription('Czy na pewno chcesz to zrobić?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(function ($record, Action $action): void {
+                        if (static::shouldBlockTaskDeletion($record)) {
+                            $action->halt();
+                        }
+                    })
+                    ->action(function ($record, Action $action): void {
+                        if (static::shouldBlockTaskDeletion($record)) {
+                            $action->halt();
+
+                            return;
+                        }
+
+                        static::releaseMachinesAfterTaskDelete($record);
+                        $record->delete();
+                    }),
             ])
             ->toolbarActions([
                     //

@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Seasons\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\Action;
 use App\Filament\Resources\Seasons\SeasonResource;
-use Filament\Actions\EditAction;
+use App\Models\Crop;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class SeasonsTable
 {
@@ -31,6 +31,7 @@ class SeasonsTable
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->label('Zaktualizowano')
                     ->dateTime('d.m.Y H:i')
@@ -48,8 +49,8 @@ class SeasonsTable
                     ->label(false)
                     ->color('warning')
                     ->url(fn ($record) => SeasonResource::getUrl('edit', [
-                    'record' => $record,
-                ])),
+                        'record' => $record,
+                    ])),
                 Action::make('delete')
                     ->icon('heroicon-m-trash')
                     ->button()
@@ -59,10 +60,25 @@ class SeasonsTable
                     ->modalHeading('Usuń Sezon')
                     ->modalDescription('Czy na pewno chcesz to zrobić?')
                     ->modalSubmitActionLabel('Tak, usuń')
+                    ->before(function (Action $action, Model $record): void {
+                        $hasCrops = Crop::query()
+                            ->where('season_id', $record->getKey())
+                            ->exists();
+
+                        if ($hasCrops) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Nie można usunąć sezonu')
+                                ->body('Ten sezon ma już przypisane uprawy.')
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
                     ->action(fn ($record) => $record->delete()),
             ])
             ->toolbarActions([
-                    //
+                //
             ]);
     }
 }

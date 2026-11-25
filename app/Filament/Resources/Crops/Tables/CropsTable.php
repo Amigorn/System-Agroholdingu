@@ -3,10 +3,11 @@
 namespace App\Filament\Resources\Crops\Tables;
 
 use App\Filament\Resources\Crops\CropResource;
+use App\Models\Crop;
 use App\Models\Season;
+use App\Models\Task;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -24,6 +25,24 @@ class CropsTable
         return $seasonId !== null ? (int) $seasonId : null;
     }
 
+    protected static function hasLinkedTasks(Crop $crop): bool
+    {
+        if (method_exists($crop, 'tasks')) {
+            return $crop->tasks()->exists();
+        }
+
+        if (! class_exists(Task::class) || blank($crop->field_id)) {
+            return false;
+        }
+
+        $query = Task::query()->where('field_id', $crop->field_id);
+
+        if (filled($crop->season_id) && \Illuminate\Support\Facades\Schema::hasColumn('tasks', 'season_id')) {
+            $query->where('season_id', $crop->season_id);
+        }
+
+        return $query->exists();
+    }
     public static function configure(Table $table): Table
     {
         return $table
@@ -113,10 +132,21 @@ class CropsTable
                     ->modalHeading('Usuń Uprawe')
                     ->modalDescription('Czy na pewno chcesz to zrobić?')
                     ->modalSubmitActionLabel('Tak, usuń')
-                    ->action(fn ($record) => $record->delete()),
+                    ->before(function (Action $action, Crop $record): void {
+                        if (static::hasLinkedTasks($record)) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Nie można usunąć uprawy')
+                                ->body('Ta uprawa ma przypisane zadania.')
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
+                    ->action(fn (Crop $record) => $record->delete()),
             ])
             ->toolbarActions([
-                    //
+                //
             ]);
     }
 }
