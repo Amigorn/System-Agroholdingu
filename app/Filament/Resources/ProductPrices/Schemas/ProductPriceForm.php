@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\ProductPrices\Schemas;
 
-use Filament\Schemas\Schema;
+use App\Models\Product;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Schema;
 
 class ProductPriceForm
 {
@@ -18,7 +19,23 @@ class ProductPriceForm
                     ->relationship('product', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get): void {
+                        if (! $state || filled($get('unit_id'))) {
+                            return;
+                        }
+
+                        $product = Product::find($state);
+                        $defaultUnitId = $product?->unit_id
+                            ?? $product?->unit_of_measure_id
+                            ?? $product?->unit?->id
+                            ?? $product?->unitOfMeasure?->id;
+
+                        if ($defaultUnitId) {
+                            $set('unit_id', $defaultUnitId);
+                        }
+                    }),
 
                 TextInput::make('price')
                     ->label('Cena')
@@ -26,6 +43,13 @@ class ProductPriceForm
                     ->prefix('PLN')
                     ->required()
                     ->step(0.01),
+
+                Select::make('unit_id')
+                    ->label('Jednostka')
+                    ->relationship('unit', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Wybierz jednostkę (np. t, kg, l)'),
 
                 DatePicker::make('valid_from')
                     ->label('Obowiązuje od')

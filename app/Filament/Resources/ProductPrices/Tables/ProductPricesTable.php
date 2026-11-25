@@ -64,9 +64,13 @@ class ProductPricesTable
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('price')
-                    ->label('Cena')
+                    ->label('Cena za')
                     ->alignRight()
                     ->money('PLN')
+                    ->sortable(),
+                TextColumn::make('unit.name')
+                    ->label('Jednostka')
+                    ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('valid_from')
                     ->label('Obowiązuje od')

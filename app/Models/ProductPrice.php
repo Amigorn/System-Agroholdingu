@@ -15,6 +15,7 @@ class ProductPrice extends Model
     protected $fillable = [
         'product_id',
         'price',
+        'unit_id',
         'valid_from',
         'valid_until',
     ];
@@ -28,5 +29,10 @@ class ProductPrice extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_id');
     }
 }

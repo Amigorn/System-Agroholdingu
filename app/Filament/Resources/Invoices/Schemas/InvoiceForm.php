@@ -244,35 +244,46 @@ class InvoiceForm
                     ->collapsible()
                     ->collapsed()
                     ->addActionLabel('Dodaj pozycję')
+                    ->extraAttributes([
+                        'style' => 'font-family: Consolas, Menlo, Monaco, "Liberation Mono", "Courier New", monospace; font-size: 13px; font-weight: 500;',
+                    ])
                     ->itemLabel(function (array $state, ?string $uuid, Repeater $component): ?string {
                         $keys = array_keys($component->getState());
                         $index = $uuid ? array_search($uuid, $keys) : false;
                         $position = $index !== false ? $index + 1 : 1;
 
-                        $productName = !empty($state['product_id']) ? Product::find($state['product_id'])?->name : null;
-                        $unitSymbol = !empty($state['unit_id']) ? UnitOfMeasure::find($state['unit_id'])?->symbol : '';
+                        $productName = !empty($state['product_id']) ? (Product::find($state['product_id'])?->name ?? 'Brak produktu') : null;
+                        $unitSymbol = !empty($state['unit_id']) ? (UnitOfMeasure::find($state['unit_id'])?->symbol ?? '') : '';
 
                         if (!$productName && empty($state['quantity']) && empty($state['total'])) {
                             return "Pozycja #{$position}: Nowa pozycja";
                         }
 
-                        $parts = [];
-                        if ($productName) {
-                            $parts[] = $productName;
-                        }
-                        if (isset($state['quantity'])) {
-                            $parts[] = "Ilość: {$state['quantity']} {$unitSymbol}";
-                        }
-                        if (isset($state['unit_price'])) {
-                            $parts[] = "Cena: {$state['unit_price']} PLN";
-                        }
-                        if (isset($state['total'])) {
-                            $parts[] = "Wartość pozycji: {$state['total']} PLN";
-                        }
+                        $nbsp = "\u{00A0}";
 
-                        $details = count($parts) > 0 ? implode(' | ', $parts) : 'Nowa pozycja';
+                        $pad = function (string $value, int $width) use ($nbsp): string {
+                            $len = mb_strlen($value, 'UTF-8');
+                            if ($len >= $width) {
+                                return $value . $nbsp;
+                            }
 
-                        return "Pozycja #{$position}: {$details}";
+                            return $value . str_repeat($nbsp, $width - $len);
+                        };
+
+                        $colProduct = $pad($productName ?? 'Brak produktu', 28);
+
+                        $qtyText = 'Ilość: ' . trim(($state['quantity'] ?? 0) . ' ' . $unitSymbol);
+                        $colQty = $pad($qtyText, 18);
+
+                        $priceFormatted = number_format((float) str_replace(',', '.', (string) ($state['unit_price'] ?? 0)), 2, '.', '');
+                        $colPrice = $pad("Cena: {$priceFormatted} PLN", 22);
+
+                        $totalFormatted = number_format((float) str_replace(',', '.', (string) ($state['total'] ?? 0)), 2, '.', '');
+                        $colTotal = "Wartość: {$totalFormatted} PLN";
+
+                        $separator = str_repeat($nbsp, 3);
+
+                        return "Pozycja #{$position}: " . implode($separator, [$colProduct, $colQty, $colPrice, $colTotal]);
                     })
                     ->deleteAction(fn ($action) => $action->after(fn (callable $set, callable $get) => self::updateInvoiceTotal($set, $get))),
             ]);
