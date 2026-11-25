@@ -13,6 +13,11 @@
 @else
     <div style="display: flex; flex-direction: column; gap: 16px;">
         @foreach ($assignments as $item)
+            @php
+                $rawStatus = (string) ($item['status'] ?? '');
+                $statusLabel = $statusLabels[$rawStatus] ?? ($rawStatus !== '' ? $rawStatus : 'Brak statusu');
+            @endphp
+
             <div
                 style="margin-bottom: 14px;"
                 class="rounded-lg border border-gray-200 dark:border-gray-700 p-3.5 space-y-2.5"
@@ -21,6 +26,10 @@
                     <span class="font-semibold text-sm text-gray-900 dark:text-white">
                         {{ $item['task_type'] }} — {{ $item['field_name'] }}
                     </span>
+                </div>
+
+                <div class="text-xs text-gray-600 dark:text-gray-400">
+                    <span>Status: <strong>{{ $statusLabel }}</strong></span>
                 </div>
 
                 <div class="flex items-center justify-between gap-3 pt-1">

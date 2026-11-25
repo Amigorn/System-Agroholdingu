@@ -139,7 +139,11 @@ class MachinesTable
                 $query->whereIn('status', ['in_progress', 'planned']);
             })
             ->get()
-            ->map(function (TaskMachine $assignment): array {
+            ->map(function ($assignment): array {
+                if (! $assignment instanceof TaskMachine) {
+                    return [];
+                }
+
                 $task = $assignment->task;
                 $operatorName = $assignment->user
                     ? (trim(($assignment->user->first_name ?? '') . ' ' . ($assignment->user->last_name ?? '')) ?: ($assignment->user->email ?? 'Brak'))
@@ -153,7 +157,7 @@ class MachinesTable
                     'task_url' => $task ? TaskResource::getUrl('edit', ['record' => $task]) : null,
                 ];
             })
-            ->filter(fn (array $item): bool => filled($item['task_url']))
+            ->filter(fn (array $item): bool => filled($item['task_url'] ?? null))
             ->values();
 
         return view('filament.modals.machine-assignments', [
