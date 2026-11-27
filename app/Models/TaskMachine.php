@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class TaskMachine extends Pivot
+class TaskMachine extends Model
 {
     protected $table = 'task_machines';
 
@@ -17,10 +17,9 @@ class TaskMachine extends Pivot
         'notes',
     ];
 
-    // Kluczowa relacja do zadania, z której ciągniemy typ, status i daty
     public function task(): BelongsTo
     {
-        return $this->belongsTo(Task::class, 'task_id');
+        return $this->belongsTo(Task::class);
     }
 
     public function tractor(): BelongsTo

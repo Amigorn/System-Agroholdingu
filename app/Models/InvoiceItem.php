@@ -13,25 +13,29 @@ class InvoiceItem extends Model
     protected $fillable = [
         'invoice_id',
         'product_id',
+        'unit_id',
         'quantity',
         'unit_price',
         'total',
         'notes',
     ];
 
-    protected $casts = [
-        'unit_price' => 'decimal:2',
-        'total' => 'decimal:2',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'unit_price' => 'decimal:2',
+            'total' => 'decimal:2',
+        ];
+    }
 
     public function invoice(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class, 'invoice_id');
+        return $this->belongsTo(Invoice::class);
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Product::class);
     }
 
     public function unit(): BelongsTo

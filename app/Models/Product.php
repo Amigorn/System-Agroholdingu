@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +13,11 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'unit_id'];
+    protected $fillable = [
+        'name',
+        'type',
+        'unit_id',
+    ];
 
     public function unit(): BelongsTo
     {
@@ -23,22 +29,31 @@ class Product extends Model
         return $this->hasMany(ProductPrice::class);
     }
 
-    /**
-     * Pobiera cenę netto produktu obowiązującą w zadanym dniu.
-     */
-    public function getPriceForDate($date): float
+    public function harvests(): HasMany
     {
-        if (!$date) {
+        return $this->hasMany(Harvest::class);
+    }
+
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function getPriceForDate(DateTimeInterface|string|null $date): float
+    {
+        if (! $date) {
             return 0.0;
         }
 
+        $targetDate = Carbon::parse($date)->toDateString();
+
         $priceRecord = $this->prices()
-            ->where('valid_from', '<=', $date)
-            ->where(function ($query) use ($date) {
-                $query->where('valid_until', '>=', $date)
-                      ->orWhereNull('valid_until');
+            ->whereDate('valid_from', '<=', $targetDate)
+            ->where(function ($query) use ($targetDate) {
+                $query->whereDate('valid_until', '>=', $targetDate)
+                    ->orWhereNull('valid_until');
             })
-            ->latest('valid_from') // Na wypadek nakładających się przedziałów bierzemy najnowszą
+            ->latest('valid_from')
             ->first();
 
         return $priceRecord ? (float) $priceRecord->price : 0.0;

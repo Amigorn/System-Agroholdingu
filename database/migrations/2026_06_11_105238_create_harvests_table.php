@@ -6,14 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
         Schema::create('harvests', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('date');
+            $table->date('date');
             $table->decimal('quantity', 10, 2);
             $table->foreignId('unit_id')->constrained('unit_of_measures')->onDelete('cascade');
             $table->foreignId('crop_id')->constrained('crops')->onDelete('cascade');
@@ -23,9 +21,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('harvests');

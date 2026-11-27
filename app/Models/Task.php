@@ -19,14 +19,8 @@ class Task extends Model
         'completed_at',
         'status',
         'description',
-        'user_id',
         'field_id',
     ];
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function field(): BelongsTo
     {
@@ -40,6 +34,6 @@ class Task extends Model
 
     public function resourceConsumptions(): HasMany
     {
-        return $this->hasMany(ResourceConsumption::class, 'task_id');
+        return $this->hasMany(ResourceConsumption::class);
     }
 }

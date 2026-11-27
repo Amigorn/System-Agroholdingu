@@ -19,12 +19,16 @@ class Invoice extends Model
         'description',
     ];
 
-    protected $casts = [
-        'total' => 'decimal:2',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'issue_date' => 'date',
+            'total' => 'decimal:2',
+        ];
+    }
 
     public function items(): HasMany
     {
-        return $this->hasMany(InvoiceItem::class, 'invoice_id');
+        return $this->hasMany(InvoiceItem::class);
     }
 }

@@ -19,6 +19,13 @@ class Harvest extends Model
         'product_id',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'date' => 'date',
+        ];
+    }
+
     public function unit(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasure::class, 'unit_id');
@@ -26,17 +33,16 @@ class Harvest extends Model
 
     public function crop(): BelongsTo
     {
-        return $this->belongsTo(Crop::class, 'crop_id');
+        return $this->belongsTo(Crop::class);
     }
 
     public function field(): BelongsTo
     {
-        return $this->belongsTo(Field::class, 'field_id');
+        return $this->belongsTo(Field::class);
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Product::class);
     }
-    
 }

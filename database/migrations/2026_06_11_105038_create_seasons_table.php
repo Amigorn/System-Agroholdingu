@@ -6,22 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-{
-    Schema::create('seasons', function (Blueprint $table) {
-        $table->id();
-        $table->integer('year');   // <-- Upewnij się, że ta kolumna tu jest!
-        $table->string('name'); // <-- I ta również
-        $table->timestamps();
-    });
-}
 
-    /**
-     * Reverse the migrations.
-     */
+    public function up(): void
+    {
+        Schema::create('seasons', function (Blueprint $table) {
+            $table->id();
+            $table->integer('year');
+            $table->string('name');
+            $table->timestamps();
+        });
+    }
+
     public function down(): void
     {
         Schema::dropIfExists('seasons');

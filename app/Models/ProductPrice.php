@@ -10,8 +10,6 @@ class ProductPrice extends Model
 {
     use HasFactory;
 
-    protected $table = 'product_prices';
-
     protected $fillable = [
         'product_id',
         'price',
@@ -20,11 +18,14 @@ class ProductPrice extends Model
         'valid_until',
     ];
 
-    protected $casts = [
-        'valid_from' => 'date',
-        'valid_until' => 'date',
-        'price' => 'decimal:2',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'valid_from' => 'date',
+            'valid_until' => 'date',
+            'price' => 'decimal:2',
+        ];
+    }
 
     public function product(): BelongsTo
     {

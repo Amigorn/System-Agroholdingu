@@ -10,9 +10,13 @@ class Machine extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'status', 'description'];
+    protected $fillable = [
+        'name',
+        'type',
+        'status',
+        'description',
+    ];
 
-    // Zadania, w których ta maszyna była ciągnikiem
     public function tasksAsTractor(): HasMany
     {
         return $this->hasMany(TaskMachine::class, 'tractor_id');

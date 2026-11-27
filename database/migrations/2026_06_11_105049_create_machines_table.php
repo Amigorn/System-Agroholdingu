@@ -6,24 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-{
-    Schema::create('machines', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('type')->nullable();
-        $table->string('status'); // np. available, broken
-        $table->text('description')->nullable(); // uwagi
-        $table->timestamps();
-    });
-}
 
-    /**
-     * Reverse the migrations.
-     */
+    public function up(): void
+    {
+        Schema::create('machines', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('type')->nullable();
+            $table->string('status');
+            $table->text('description')->nullable();
+            $table->timestamps();
+        });
+    }
+
     public function down(): void
     {
         Schema::dropIfExists('machines');

@@ -10,12 +10,19 @@ class Field extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'area', 'soil_type', 'location', 'description'];
+    protected $fillable = [
+        'name',
+        'area',
+        'soil_type',
+        'location',
+        'description',
+    ];
 
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
     }
+
     public function crops(): HasMany
     {
         return $this->hasMany(Crop::class);

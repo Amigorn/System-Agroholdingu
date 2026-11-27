@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\HasName;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements HasName
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory;
+    use Notifiable;
+    use SoftDeletes;
 
     protected $fillable = [
         'first_name',
@@ -19,12 +22,6 @@ class User extends Authenticatable implements HasName
         'password',
         'role',
     ];
-
-    // Ta metoda powie Filamentowi, jak wyświetlić Twoje imię i nazwisko
-    public function getFilamentName(): string
-    {
-        return "{$this->first_name} {$this->last_name}";
-    }
 
     protected $hidden = [
         'password',
@@ -37,5 +34,15 @@ class User extends Authenticatable implements HasName
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getFilamentName(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function taskMachines(): HasMany
+    {
+        return $this->hasMany(TaskMachine::class);
     }
 }

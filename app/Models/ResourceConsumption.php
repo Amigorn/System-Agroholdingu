@@ -11,18 +11,18 @@ class ResourceConsumption extends Model
     use HasFactory;
 
     protected $fillable = [
-        'quantity', 
-        'task_id', 
+        'quantity',
+        'task_id',
         'resource_id',
     ];
 
-    public function task(): BelongsTo 
-    { 
-        return $this->belongsTo(Task::class, 'task_id'); 
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(Task::class);
     }
 
-    public function resource(): BelongsTo 
-    { 
-        return $this->belongsTo(Resource::class, 'resource_id'); 
-    } 
+    public function resource(): BelongsTo
+    {
+        return $this->belongsTo(Resource::class);
+    }
 }

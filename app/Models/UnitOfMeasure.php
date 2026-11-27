@@ -10,7 +10,10 @@ class UnitOfMeasure extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nazwa', 'skrot'];
+    protected $fillable = [
+        'name',
+        'symbol',
+    ];
 
     public function resources(): HasMany
     {
@@ -20,5 +23,20 @@ class UnitOfMeasure extends Model
     public function harvests(): HasMany
     {
         return $this->hasMany(Harvest::class);
+    }
+
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class, 'unit_id');
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'unit_id');
+    }
+
+    public function productsPrices(): HasMany
+    {
+        return $this->hasMany(ProductPrice::class, 'unit_id');
     }
 }
