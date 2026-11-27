@@ -80,8 +80,9 @@ class TaskSeeder extends Seeder
             if ($task->status === 'completed') {
                 $startTimestamp = rand($taskStart->timestamp, $taskEnd->timestamp);
                 $startedAt = Carbon::createFromTimestamp($startTimestamp);
+                $endUpperBound = max($startedAt->timestamp, $taskEnd->timestamp);
                 $completedAt = Carbon::createFromTimestamp(
-                    rand($startedAt->timestamp, $taskEnd->timestamp)
+                    rand($startedAt->timestamp, $endUpperBound)
                 );
 
                 $taskUpdates['started_at'] = $startedAt;

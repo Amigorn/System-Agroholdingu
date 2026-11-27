@@ -74,6 +74,7 @@ class MachinesTable
                     ->button()
                     ->label(false)
                     ->color('info')
+                    ->tooltip('Przypisne zadania')
                     ->visible(fn (Machine $record): bool => self::hasActiveOrPlannedTasks($record))
                     ->modalHeading(fn (Machine $record): string => "Przypisania maszyny: {$record->name}")
                     ->modalSubmitAction(false)

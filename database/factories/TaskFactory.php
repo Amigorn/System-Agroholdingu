@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Field;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TaskFactory extends Factory
@@ -35,8 +34,8 @@ class TaskFactory extends Factory
                 'Orka',
                 'Talerzowanie',
                 'Bronowanie',
-                'Siew', 
-                'Oprysk', 
+                'Siew',
+                'Oprysk',
                 'Nawożenie',
                 'Prasowanie słomy',
                 'Oprysk herbicydowy',
@@ -53,7 +52,6 @@ class TaskFactory extends Factory
             'completed_at' => $completedAt,
             'status' => $status,
             'description' => fake()->optional()->text(100),
-            'user_id' => User::inRandomOrder()->first()?->id,
             'field_id' => Field::inRandomOrder()->first()?->id ?? Field::factory(),
         ];
     }
